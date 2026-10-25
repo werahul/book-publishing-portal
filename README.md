@@ -2,7 +2,7 @@
 
 An author-support portal for BookLeaf Publishing. Authors see their books and royalties and raise tickets. The ops team works a prioritised queue, and an AI assistant triages every ticket and drafts replies grounded in the BookLeaf knowledge base. An admin always reviews a draft before it is sent.
 
-**Live demo:** _(add the Vercel URL here)_. The API runs on Render's free plan, so the first request after a quiet spell can take about 50 s while it wakes.
+**Live demo:** https://book-publishing-portal.vercel.app (API: https://book-publishing-portal.onrender.com/api/v1/health). The API runs on Render's free plan, so the first request after a quiet spell can take about 50 s while it wakes. Open the health URL first to wake it.
 
 ## Test credentials
 

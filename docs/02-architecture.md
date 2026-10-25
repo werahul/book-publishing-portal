@@ -239,6 +239,8 @@ See [`03-data-model.md`](03-data-model.md).
 
 ## 6. Deployment
 
+Live: web https://book-publishing-portal.vercel.app · API https://book-publishing-portal.onrender.com (health: `/api/v1/health`).
+
 | Piece | Host | Notes |
 |---|---|---|
 | `client/` | Vercel | Root directory `client`. Vercel installs from the repo root (npm workspaces), so the root `postinstall` builds `@bookleaf/shared`. Env: `API_URL` (Render URL), `JWT_SECRET` (for the route guard's verify), `NEXT_PUBLIC_SHOW_DEMO_LOGINS=true`. The socket URL comes from `GET /auth/socket-token`, so the API URL is never public config. |

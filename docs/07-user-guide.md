@@ -196,11 +196,11 @@ To try this locally, remove `GROQ_API_KEY` from `server/.env` and restart the AP
 
 | What | Local | Live |
 |---|---|---|
-| Web app (both portals) | http://localhost:3000 | *(Vercel URL)* |
-| REST API | http://localhost:4000/api/v1 | *(Render URL)*`/api/v1` |
-| API health check | http://localhost:4000/api/v1/health | *(Render URL)*`/api/v1/health` |
+| Web app (both portals) | http://localhost:3000 | https://book-publishing-portal.vercel.app |
+| REST API | http://localhost:4000/api/v1 | https://book-publishing-portal.onrender.com/api/v1 |
+| API health check | http://localhost:4000/api/v1/health | https://book-publishing-portal.onrender.com/api/v1/health |
 
-In the browser, the app calls the API through its own address (`http://localhost:3000/api/v1/...`), so you can open those URLs too once you're logged in.
+In the browser, the app calls the API through its own address (`http://localhost:3000/api/v1/...`, or `https://book-publishing-portal.vercel.app/api/v1/...` live), so you can open those URLs too once you're logged in. The page URLs below use `localhost:3000`; on the live site, swap in `https://book-publishing-portal.vercel.app`.
 
 ### 8.2 Web pages
 
