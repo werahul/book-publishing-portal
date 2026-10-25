@@ -43,10 +43,7 @@ export function PriorityBadge({ priority }: { priority: Priority | null }) {
   return (
     <span className={`${base} ${PRIORITY_STYLES[priority]}`}>
       {priority === "critical" ? (
-        <span className="relative flex size-1.5">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-white opacity-75" />
-          <span className="relative inline-flex size-1.5 rounded-full bg-white" />
-        </span>
+        <span className="size-1.5 rounded-full bg-white" />
       ) : (
         <PriorityBars priority={priority} />
       )}
@@ -98,7 +95,7 @@ export function StageBadge({ stage }: { stage: ProductionStage }) {
     <span
       className={`${base} ${live ? "bg-leaf-50 text-leaf-700 ring-1 ring-leaf-200" : "bg-amber-50 text-amber-800 ring-1 ring-amber-200"}`}
     >
-      <span className={`${dot} ${live ? "bg-leaf-500" : "animate-pulse bg-amber-500"}`} />
+      <span className={`${dot} ${live ? "bg-leaf-500" : "bg-amber-500"}`} />
       {live ? PRODUCTION_STAGE_LABELS[stage] : `In production · ${PRODUCTION_STAGE_LABELS[stage]}`}
     </span>
   );

@@ -135,11 +135,24 @@ function ProductionDetails({ book }: { book: Book }) {
             key={s}
             title={PRODUCTION_STAGE_LABELS[s]}
             className={`h-2 flex-1 rounded-full ${
-              i + 1 < step ? "bg-linear-to-r from-amber-400 to-amber-500" : i + 1 === step ? "animate-pulse bg-amber-400" : "bg-stone-200"
+              i + 1 < step ? "bg-linear-to-r from-amber-400 to-amber-500" : i + 1 === step ? "bg-amber-400" : "bg-stone-200"
             }`}
           />
         ))}
       </div>
+      <ol className="flex flex-wrap gap-x-1.5 gap-y-1 text-[11px]" aria-label="Production stages">
+        {PRODUCTION_STAGES.map((s, i) => (
+          <li
+            key={s}
+            aria-current={i + 1 === step ? "step" : undefined}
+            className={i + 1 < step ? "text-stone-600" : i + 1 === step ? "font-semibold text-amber-800" : "text-stone-400"}
+          >
+            {i + 1 < step && "✓ "}
+            {PRODUCTION_STAGE_LABELS[s]}
+            {i < PRODUCTION_STAGES.length - 1 && <span className="ml-1.5 text-stone-300">→</span>}
+          </li>
+        ))}
+      </ol>
       <p className="text-sm text-stone-500">
         Your book is still in production. Price, sales and royalty figures will appear here once it&apos;s published
         and live. We&apos;ll email you as it moves through each stage.

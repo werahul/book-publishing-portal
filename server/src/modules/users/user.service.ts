@@ -53,3 +53,14 @@ export async function listAuthorsWithStats(): Promise<AuthorSummaryDto[]> {
 
   return rows.map(({ _id, ...rest }) => ({ id: String(_id), ...rest }));
 }
+
+export interface AdminSummaryDto {
+  id: string;
+  name: string;
+}
+
+/** Support teammates a ticket can be assigned to. Name only: the picker needs nothing else. */
+export async function listAdmins(): Promise<AdminSummaryDto[]> {
+  const admins = await User.find({ role: 'admin' }).select('name').sort({ name: 1 }).lean();
+  return admins.map((a) => ({ id: String(a._id), name: a.name }));
+}

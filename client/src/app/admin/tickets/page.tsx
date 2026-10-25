@@ -21,7 +21,7 @@ export default function QueuePage({ searchParams }: PageProps<"/admin/tickets">)
       <PageHeader
         eyebrow="Support Console"
         title="Ticket queue"
-        description="Unresolved tickets first, then by priority, then oldest — so nothing urgent waits."
+        description="Most urgent first, then oldest, so nothing important sits waiting."
       />
       <Suspense fallback={<Skeleton className="h-[28rem]" />}>
         <Queue searchParams={searchParams} />

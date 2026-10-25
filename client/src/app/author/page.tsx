@@ -36,7 +36,7 @@ function WelcomeHero({ name }: { name: string | null }) {
     <Hero
       eyebrow="Author Portal"
       title={name ? `Welcome back, ${name}` : "Welcome back"}
-      description="Your books, royalties and support requests at a glance."
+      description="Where your books and royalties stand today, and anything you've asked us about."
       actions={
         <>
           <ButtonLink href="/author/tickets/new" variant="light" icon="plus">

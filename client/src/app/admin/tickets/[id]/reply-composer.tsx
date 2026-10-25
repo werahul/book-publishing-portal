@@ -245,8 +245,7 @@ function DraftBar({
           role="status"
           className="relative flex items-center gap-2 overflow-hidden rounded-lg bg-linear-to-r from-indigo-50 to-violet-50 px-3 py-2.5 text-sm text-indigo-800 ring-1 ring-indigo-100"
         >
-          <span aria-hidden className="absolute inset-0 -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-white/70 to-transparent" />
-          <Icon name="sparkles" className="relative size-4 animate-pulse" />
+          <Icon name="sparkles" className="relative size-4" />
           <span className="relative">Drafting a reply from the BookLeaf knowledge base…</span>
         </p>
       );

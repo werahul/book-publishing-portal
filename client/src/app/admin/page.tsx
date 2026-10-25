@@ -58,7 +58,7 @@ async function QueueStats() {
   const active = s.byStatus.open + s.byStatus.in_progress;
   const summary =
     active === 0
-      ? "The queue is clear. Nice work, team."
+      ? "The queue is empty. Nothing is waiting on the team."
       : `${active} active ticket${active === 1 ? "" : "s"} · ${s.activeUnassigned} unassigned · ${s.activeStale} stale.`;
 
   return (
@@ -143,8 +143,8 @@ async function NeedsAttention() {
           <span className="mx-auto mb-3 grid size-12 place-items-center rounded-2xl bg-leaf-50 text-leaf-600 ring-1 ring-leaf-100">
             <Icon name="check" className="size-6" />
           </span>
-          <p className="font-display text-lg font-semibold text-stone-900">Inbox zero</p>
-          <p className="text-sm text-stone-500">No active tickets. Enjoy the quiet.</p>
+          <p className="font-display text-lg font-semibold text-stone-900">No active tickets</p>
+          <p className="text-sm text-stone-500">New tickets will appear here as authors raise them.</p>
         </Card>
       ) : (
         <Card className="divide-y divide-stone-100 overflow-hidden">

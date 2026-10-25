@@ -84,7 +84,7 @@ function HeroDecor() {
         className="absolute inset-0 opacity-[0.07]"
         style={{ backgroundImage: "radial-gradient(currentColor 1px, transparent 1px)", backgroundSize: "18px 18px" }}
       />
-      <Icon name="leaf" strokeWidth={1} className="absolute -right-6 -bottom-10 size-56 animate-float text-white/10" />
+      <Icon name="leaf" strokeWidth={1} className="absolute -right-6 -bottom-10 size-56 text-white/10" />
       <Icon name="leaf" strokeWidth={1.25} className="absolute top-6 right-48 hidden size-16 rotate-45 text-white/10 md:block" />
     </div>
   );
@@ -169,9 +169,7 @@ export function ButtonLink({
 
 export function Skeleton({ className = "h-40" }: { className?: string }) {
   return (
-    <div aria-hidden className={`relative overflow-hidden rounded-xl border border-stone-200/70 bg-white/70 ${className}`}>
-      <div className="absolute inset-0 -translate-x-full animate-shimmer bg-linear-to-r from-transparent via-stone-100 to-transparent" />
-    </div>
+    <div aria-hidden className={`animate-pulse rounded-xl border border-stone-200/70 bg-white/70 ${className}`} />
   );
 }
 
@@ -288,29 +286,34 @@ export function Avatar({ name, size = "md" }: { name: string; size?: keyof typeo
   );
 }
 
-const COVER_TONES = [
-  "from-leaf-500 to-leaf-900",
-  "from-amber-500 to-orange-800",
-  "from-sky-600 to-indigo-900",
-  "from-rose-500 to-rose-900",
-  "from-violet-500 to-violet-900",
-  "from-teal-500 to-teal-900",
-];
-const COVER_SIZES = { sm: "h-11 w-8 text-sm", md: "h-24 w-[4.25rem] text-2xl" };
+/** Muted cloth colours, so a shelf of covers looks like real hardbacks rather than one brand tile. */
+const COVER_COLOURS = ["#2b6d4d", "#8a3b2a", "#2f4a6d", "#9a6b1c", "#5b4a73", "#3d5c56", "#6b2f3a"];
+const COVER_SIZES = { sm: "h-11 w-8 text-sm", md: "h-24 w-[4.25rem]" };
 
-/** A generated cover: colour from the title, with a spine and the first letter. */
+/** A generated cover: a cloth colour from the title, a spine, and the title set on the front. */
 export function BookCover({ title, size = "md" }: { title: string; size?: keyof typeof COVER_SIZES }) {
+  // Allow line breaks after + / - so titles like "Ctrl+Alt+Delete" wrap between words, not mid-word.
+  const coverTitle = title.replace(/([+/-])/g, "$1\u200B");
   return (
     <div
       aria-hidden
-      className={`relative shrink-0 overflow-hidden rounded-l-sm rounded-r-md bg-linear-to-br shadow-md ring-1 ring-black/10 ${COVER_TONES[hash(title) % COVER_TONES.length]} ${COVER_SIZES[size]}`}
+      style={{ backgroundColor: COVER_COLOURS[hash(title) % COVER_COLOURS.length] }}
+      className={`relative shrink-0 overflow-hidden rounded-l-sm rounded-r-md shadow-md ring-1 ring-black/10 ${COVER_SIZES[size]}`}
     >
       <span className="absolute inset-y-0 left-0 w-[12%] bg-black/20" />
       <span className="absolute inset-y-0 left-[12%] w-px bg-white/30" />
-      <span className="absolute inset-0 grid place-items-center pl-[12%] font-display font-semibold text-white/95">
-        {title.charAt(0)}
-      </span>
-      {size === "md" && <span className="absolute inset-x-3 bottom-3 ml-[12%] h-px bg-white/40" />}
+      {size === "md" ? (
+        <>
+          <span className="absolute inset-x-0 top-0 bottom-5 flex items-center justify-center pr-1.5 pl-[calc(12%+6px)] text-center">
+            <span lang="en" className="line-clamp-4 font-display text-[9px] leading-[1.2] font-semibold hyphens-auto text-white/95 [overflow-wrap:anywhere]">{coverTitle}</span>
+          </span>
+          <span className="absolute inset-x-3 bottom-3 ml-[12%] h-px bg-white/40" />
+        </>
+      ) : (
+        <span className="absolute inset-0 grid place-items-center pl-[12%] font-display font-semibold text-white/95">
+          {title.charAt(0)}
+        </span>
+      )}
     </div>
   );
 }

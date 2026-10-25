@@ -23,14 +23,14 @@
   --shadow-lift: 0 2px 4px rgb(41 37 36 / 0.04), 0 16px 36px -12px rgb(30 71 52 / 0.25);
   --shadow-glow: 0 8px 24px -8px rgb(43 109 77 / 0.55);
 
-  --animate-rise: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-rise: rise 0.25s ease-out both;
   --animate-shimmer: shimmer 1.6s ease-in-out infinite;
   --animate-float: float 7s ease-in-out infinite;
 
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(3px);
     }
   }
   @keyframes shimmer {
@@ -96,6 +96,10 @@
   }
   .btn-primary {
     @apply bg-linear-to-b from-leaf-600 to-leaf-700 text-white shadow-glow ring-1 ring-leaf-800/40 ring-inset hover:from-leaf-500 hover:to-leaf-700;
+  }
+  /* Primary action on the support-team sign-in. */
+  .btn-team {
+    @apply bg-linear-to-b from-stone-800 to-stone-950 text-white shadow-md ring-1 ring-stone-950/60 ring-inset hover:from-stone-700 hover:to-stone-900;
   }
   .btn-secondary {
     @apply bg-white text-stone-700 shadow-xs ring-1 ring-stone-300 hover:bg-stone-50 hover:text-stone-900;

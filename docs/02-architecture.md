@@ -24,11 +24,11 @@ flowchart LR
     end
 
     DB[(MongoDB Atlas)]
-    LLM[[Groq API<br/>Llama models]]
+    LLM[[Groq API<br/>gpt-oss-20b / gpt-oss-120b]]
 
     A & B -->|HTTPS same-origin| RW --> MW --> AUTH --> MOD --> DB
     RSC --> MW
-    A & B -. websocket (Phase 4) .-> IO
+    A & B -. websocket .-> IO
     MOD --> AI --> LLM
     MOD --> IO
 ```
@@ -40,7 +40,7 @@ flowchart LR
 | Database | MongoDB Atlas + Mongoose 8 | The data is document-shaped (an author with nested book stats, a ticket with AI metadata). Mongoose gives schemas, validation and indexes. |
 | Auth | JWT in an httpOnly cookie | Stateless, and XSS-safe because JS never reads the token. |
 | Validation | Zod (in `@bookleaf/shared`) | One schema validates the request on the server and the form on the client, and also gives TS types. |
-| AI | Groq (Llama 3.x) behind a provider interface | Free tier, very low latency, OpenAI-compatible JSON mode. Can be swapped for OpenAI or Anthropic by adding one provider file. |
+| AI | Groq (`gpt-oss-20b` to classify, `gpt-oss-120b` to draft) behind a provider interface | Free tier, very low latency, OpenAI-compatible JSON mode. Can be swapped for OpenAI or Anthropic by adding one provider file (see §4.2). |
 | Real-time | Socket.IO | Rooms per user and an `admins` room. Falls back to long-polling. |
 
 ---
@@ -71,7 +71,7 @@ bookleaf/
    └─ src/
       ├─ proxy.ts       route guard (Next 16 "proxy", formerly middleware)
       ├─ lib/           api.ts (browser fetch), server-api.ts (RSC fetch), session.ts (jose verify), routes.ts
-      ├─ components/    portal-shell (header + user menu), logout-button
+      ├─ components/    portal-shell, live-updates (socket + polling), ticket-thread, badges, ui
       └─ app/           /login, /author/*, /admin/*
 ```
 
@@ -90,7 +90,7 @@ errors  → errorHandler → { error: { code, message, details? } } with the rig
 Rules:
 - **Controllers** don't touch Mongoose directly and contain no business rules.
 - **Services** take the authenticated user as an argument and apply ownership scoping themselves. That way a new route can't forget the RBAC check.
-- **Errors** are thrown as `AppError` (`badRequest`, `unauthorized`, `forbidden`, `notFound`, `conflict`). Everything else becomes a generic 500 and is logged server-side.
+- **Errors** are thrown through the `Errors.*` factories in `lib/app-error.ts` (`validation`, `unauthenticated`, `forbidden`, `notFound`, `ticketClosed`, `aiUnavailable`, …). Everything else becomes a generic 500 and is logged server-side.
 
 ---
 
@@ -181,7 +181,7 @@ Cost and robustness decisions:
 - **KB sectioning.** The knowledge base is stored as named sections (royalty, isbn, printing, distribution, production, general, tone). A draft prompt includes only the section(s) for the ticket's category, the tone guide, and the one matching sample Q→A. That's about 600–900 tokens, not the full KB.
 - **Context minimisation.** Only the selected book's relevant fields are sent (e.g. royalty fields for a royalty ticket, stage for a production ticket), plus this ticket's text and the last N messages (capped). We don't send all of the author's history.
 - **Caching.** The draft is stored on the ticket and regenerated only when the admin clicks "Regenerate" or a new author message arrives.
-- **Timeouts and retries.** 10–15 s timeout, one retry with backoff on 429/5xx, then fall back.
+- **Timeouts and retries.** 15 s timeout per attempt, one retry with backoff on 429/5xx, then fall back.
 - **Validation.** Every LLM response is parsed with Zod. Anything unparseable is treated as a failure.
 - **Never auto-send.** The draft is only a suggestion. Sending is an explicit admin action.
 
@@ -241,8 +241,35 @@ See [`03-data-model.md`](03-data-model.md).
 
 | Piece | Host | Notes |
 |---|---|---|
-| `client/` | Vercel | Env: `API_URL` (Render URL) and `JWT_SECRET` (for the route guard's verify). No public env vars: the socket URL comes from `GET /auth/socket-token`. |
-| `server/` | Render web service | Build: `npm ci && npm run build:shared && npm run build -w server`. Start: `npm start -w server`. Env per `server/.env.example`. Set `SOCKET_PUBLIC_URL` to the Render URL and `CLIENT_ORIGIN` to the Vercel URL (Socket.IO CORS). |
-| Database | MongoDB Atlas (M0) | Seeded once with `npm run seed -- --reset`. |
+| `client/` | Vercel | Root directory `client`. Vercel installs from the repo root (npm workspaces), so the root `postinstall` builds `@bookleaf/shared`. Env: `API_URL` (Render URL), `JWT_SECRET` (for the route guard's verify), `NEXT_PUBLIC_SHOW_DEMO_LOGINS=true`. The socket URL comes from `GET /auth/socket-token`, so the API URL is never public config. |
+| `server/` | Render web service, from [`render.yaml`](../render.yaml) | Build: `npm ci --include=dev && npm run build -w server` (`--include=dev` because `NODE_ENV=production` would skip TypeScript). Start: `npm start -w server`. Health check: `/api/v1/health` (503 when MongoDB is down). |
+| Database | MongoDB Atlas (M0) | Network access `0.0.0.0/0` (Render has no static egress IPs on the free plan). Seeded from a dev machine with `npm run seed -- --reset`. |
+
+### Environment
+
+| Variable | Render (API) | Vercel (client) |
+|---|---|---|
+| `NODE_ENV` | `production` | (set by Vercel) |
+| `MONGODB_URI` | Atlas SRV URI | — |
+| `JWT_SECRET` | 32+ random chars | **the same value** |
+| `GROQ_API_KEY` | Groq key (optional: without it the app runs on keyword triage + manual replies) | — |
+| `CLIENT_ORIGIN` | Vercel URL | — |
+| `SOCKET_PUBLIC_URL` | Render URL | — |
+| `TRUST_PROXY` | `2` (Vercel rewrite + Render proxy) | — |
+| `LOGIN_RATE_LIMIT_MAX` | `30` | — |
+| `API_URL` | — | Render URL |
+| `NEXT_PUBLIC_SHOW_DEMO_LOGINS` | — | `true` (only toggles the demo buttons; not a secret) |
 
 `JWT_SECRET` is shared by the API and the Next server runtime. It's never prefixed `NEXT_PUBLIC_`, so it doesn't reach the browser.
+
+### Order of operations
+
+Each host needs the previous one's URL:
+
+1. **Atlas:** create the cluster and a database user, allow `0.0.0.0/0`.
+2. **Seed:** point `server/.env` at the Atlas URI and run `npm run seed -- --reset`.
+3. **Render:** New → Blueprint → this repo. Fill in the secrets; use a placeholder for `CLIENT_ORIGIN`. Set `SOCKET_PUBLIC_URL` to the service URL Render assigns.
+4. **Vercel:** import the repo with root directory `client` and set its env.
+5. **Render:** set `CLIENT_ORIGIN` to the Vercel URL and redeploy.
+
+The free Render plan sleeps after 15 minutes idle and takes about 50 s to wake. Open `/api/v1/health` once before a demo.

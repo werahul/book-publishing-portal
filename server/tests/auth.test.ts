@@ -3,7 +3,17 @@ import request from 'supertest';
 import { SESSION_COOKIE_NAME } from '@bookleaf/shared';
 import { JWT_ISSUER, SESSION_AUDIENCE } from '../src/lib/jwt';
 import { User } from '../src/modules/users/user.model';
-import { app, AUTHOR_PASSWORD, loginAs, PRIYA, seedSample, startTestDb, stopTestDb } from './helpers';
+import {
+  ADMIN,
+  ADMIN_PASSWORD,
+  app,
+  AUTHOR_PASSWORD,
+  loginAs,
+  PRIYA,
+  seedSample,
+  startTestDb,
+  stopTestDb,
+} from './helpers';
 
 const LOGIN = '/api/v1/auth/login';
 const ME = '/api/v1/auth/me';
@@ -75,6 +85,49 @@ describe('POST /auth/login', () => {
       .send('{"email": ');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_JSON');
+  });
+});
+
+describe('POST /auth/login with a portal (sign-in tab)', () => {
+  it('signs in when the portal matches the role', async () => {
+    const author = await request(app).post(LOGIN).send({ email: PRIYA, password: AUTHOR_PASSWORD, portal: 'author' });
+    const admin = await request(app).post(LOGIN).send({ email: ADMIN, password: ADMIN_PASSWORD, portal: 'admin' });
+
+    expect(author.status).toBe(200);
+    expect(admin.status).toBe(200);
+    expect(admin.body.data.user.role).toBe('admin');
+    expect(sessionCookie(admin)).toBeDefined();
+  });
+
+  it('rejects an author on the team tab with 403 WRONG_PORTAL and sets no cookie', async () => {
+    const res = await request(app).post(LOGIN).send({ email: PRIYA, password: AUTHOR_PASSWORD, portal: 'admin' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe('WRONG_PORTAL');
+    expect(res.body.error.message).toMatch(/Author sign-in/);
+    expect(sessionCookie(res)).toBeUndefined();
+  });
+
+  it('rejects an admin on the author tab with 403 WRONG_PORTAL', async () => {
+    const res = await request(app).post(LOGIN).send({ email: ADMIN, password: ADMIN_PASSWORD, portal: 'author' });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toMatch(/BookLeaf Team sign-in/);
+    expect(sessionCookie(res)).toBeUndefined();
+  });
+
+  it('still answers a wrong password with the generic 401, so the tab leaks no account details', async () => {
+    const res = await request(app).post(LOGIN).send({ email: ADMIN, password: 'nope', portal: 'author' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.code).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('rejects an unknown portal value with 400', async () => {
+    const res = await request(app).post(LOGIN).send({ email: PRIYA, password: AUTHOR_PASSWORD, portal: 'superuser' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details[0].path).toBe('body.portal');
   });
 });
 

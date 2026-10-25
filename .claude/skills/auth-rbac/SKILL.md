@@ -9,6 +9,7 @@ description: How authentication and role-based access work in BookLeaf (JWT http
 1. `POST /api/v1/auth/login` (`server/src/modules/auth/`):
    - Validates with `loginSchema` and looks the user up with `.select('+passwordHash')`.
    - Compares with bcrypt. An unknown email runs `burnPasswordCheck` so both failures take about the same time and return the same `401 INVALID_CREDENTIALS`.
+   - Optional `portal` (`author` | `admin`) is the sign-in tab the user chose (`/login` vs `/login?as=team`). A mismatch returns `403 WRONG_PORTAL` with no cookie, but **only after** the password check, so it never reveals which emails are admins. Both tabs share one JWT and cookie; never split them per role.
    - Signs a JWT (`src/lib/jwt.ts`): HS256, `sub` = user id, `role`, `iss: bookleaf-api`, `aud: bookleaf-web`, TTL `JWT_TTL_SECONDS`.
    - Sets the `bl_token` cookie (`src/lib/cookies.ts`): httpOnly, SameSite=Lax, Path=/, Secure in production.
 2. The browser only talks to the Next.js origin. `client/next.config.ts` rewrites `/api/*` to Express, so the cookie is first-party. Never switch to `SameSite=None` or cross-origin fetches.

@@ -2,11 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { Role } from "@bookleaf/shared";
 import { apiFetch } from "@/lib/api";
 import { disconnectRealtime } from "@/lib/realtime";
+import { loginPathFor } from "@/lib/routes";
 import { Icon } from "./icons";
 
-export function LogoutButton() {
+/** `portal` sends the user back to the matching sign-in tab. */
+export function LogoutButton({ portal }: { portal: Role }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
 
@@ -17,7 +20,7 @@ export function LogoutButton() {
       await apiFetch("/auth/logout", { method: "POST" });
     } finally {
       // Even if the request failed, leave the portal; the proxy re-checks the cookie.
-      router.replace("/login");
+      router.replace(loginPathFor(portal));
       router.refresh();
     }
   }

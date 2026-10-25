@@ -8,7 +8,7 @@ import { TicketThread } from "@/components/ticket-thread";
 import { Avatar, BookCover, Card, PageHeader, Prose, Skeleton } from "@/components/ui";
 import { formatAge, formatDate, formatDateTime, formatINR } from "@/lib/format";
 import { serverFetch } from "@/lib/server-api";
-import type { AdminTicket, AdminTicketDetail, ApiData, AuthUser, Book, TicketNote } from "@/lib/types";
+import type { AdminSummary, AdminTicket, AdminTicketDetail, ApiData, AuthUser, Book, TicketNote } from "@/lib/types";
 import { NoteForm } from "./note-form";
 import { ReplyComposer } from "./reply-composer";
 import { RerunAiButton } from "./rerun-ai-button";
@@ -24,9 +24,10 @@ export default function AdminTicketPage({ params }: PageProps<"/admin/tickets/[i
 
 async function TicketWorkspace({ params }: Pick<PageProps<"/admin/tickets/[id]">, "params">) {
   const { id } = await params;
-  const [{ data }, { data: me }] = await Promise.all([
+  const [{ data }, { data: me }, { data: admins }] = await Promise.all([
     serverFetch<ApiData<AdminTicketDetail>>(`/tickets/${id}`),
     serverFetch<ApiData<{ user: AuthUser }>>("/auth/me"),
+    serverFetch<ApiData<AdminSummary[]>>("/admins"),
   ]);
   const { ticket, messages, notes, authorContext } = data;
   const firstName = ticket.author.name.split(" ")[0] ?? ticket.author.name;
@@ -76,7 +77,7 @@ async function TicketWorkspace({ params }: Pick<PageProps<"/admin/tickets/[id]">
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <Card className="animate-rise p-4">
             <PanelTitle icon="ticket">Ticket</PanelTitle>
-            <TicketActions ticket={ticket} currentAdminId={me.user.id} />
+            <TicketActions ticket={ticket} currentAdminId={me.user.id} admins={admins} />
           </Card>
           <TriagePanel ticket={ticket} />
           <AuthorPanel ticket={ticket} books={authorContext.books} activeTickets={authorContext.activeTickets} totalTickets={authorContext.totalTickets} />
@@ -121,10 +122,7 @@ function TriagePanel({ ticket }: { ticket: AdminTicket }) {
           </p>
         ) : (
           <p className="flex items-start gap-2 text-stone-500">
-            <span className="relative mt-1.5 flex size-2 shrink-0">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-400 opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-indigo-500" />
-            </span>
+            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-indigo-500" />
             AI review in progress. The current category and priority come from keyword rules and update here automatically.
           </p>
         )}

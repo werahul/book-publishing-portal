@@ -2,36 +2,42 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { loginSchema } from "@bookleaf/shared";
+import { loginSchema, type Role } from "@bookleaf/shared";
 import { ApiError, apiFetch } from "@/lib/api";
 import { homeFor } from "@/lib/routes";
 import type { ApiData, AuthUser } from "@/lib/types";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/ui";
+import { LOGIN_PORTALS } from "./portals";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
-const DEMO_ACCOUNTS = [
-  { name: "Priya Sharma", role: "Author", note: "Live books & royalties", email: "priya.sharma@email.com", password: "Author@123" },
-  { name: "Sneha Kulkarni", role: "Author", note: "Book in production", email: "sneha.kulkarni@email.com", password: "Author@123" },
-  { name: "Support Lead", role: "Admin", note: "Support console", email: "admin@bookleaf.com", password: "Admin@123" },
-];
+/** An error belongs to the tab it happened on, so switching tabs clears it without an effect. */
+interface FormError {
+  portal: Role;
+  message: string;
+  /** Set when the account belongs to the other tab (403 WRONG_PORTAL). */
+  switchTo?: Role;
+}
+
 const SHOW_DEMO = process.env.NEXT_PUBLIC_SHOW_DEMO_LOGINS !== "false";
 
-export function LoginForm() {
+export function LoginForm({ portal, onSwitchPortal }: { portal: Role; onSwitchPortal: (portal: Role) => void }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormError | null>(null);
   const [pending, setPending] = useState(false);
+  const config = LOGIN_PORTALS[portal];
+  const error = formError?.portal === portal ? formError : null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError(null);
 
     // Same schema the API validates with (@bookleaf/shared).
-    const parsed = loginSchema.safeParse({ email, password });
+    const parsed = loginSchema.safeParse({ email, password, portal });
     if (!parsed.success) {
       const errors: FieldErrors = {};
       for (const issue of parsed.error.issues) {
@@ -52,7 +58,12 @@ export function LoginForm() {
       router.replace(homeFor(data.user.role));
       router.refresh();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : "Could not reach the server. Please try again.");
+      if (err instanceof ApiError) {
+        const switchTo = err.code === "WRONG_PORTAL" ? (portal === "admin" ? "author" : "admin") : undefined;
+        setFormError({ portal, message: err.message, switchTo });
+      } else {
+        setFormError({ portal, message: "Could not reach the server. Please try again." });
+      }
       setPending(false);
     }
   }
@@ -60,11 +71,24 @@ export function LoginForm() {
   return (
     <div className="space-y-6">
       <form onSubmit={onSubmit} noValidate className="space-y-4">
-        {formError && (
-          <p role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            <Icon name="alert" className="mt-0.5 size-4" />
-            {formError}
-          </p>
+        {error && (
+          <div role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <Icon name="alert" className="mt-0.5 size-4 shrink-0" />
+            <div className="space-y-1.5">
+              <p>{error.message}</p>
+              {error.switchTo && (
+                // Credentials stay filled in, so the next click on "Sign in" just works.
+                <button
+                  type="button"
+                  onClick={() => onSwitchPortal(error.switchTo!)}
+                  className="inline-flex items-center gap-1 font-medium text-red-800 underline underline-offset-2 hover:text-red-900"
+                >
+                  Switch to {LOGIN_PORTALS[error.switchTo].tabLabel} sign-in
+                  <Icon name="arrowRight" className="size-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
         )}
 
         <Field label="Email" error={fieldErrors.email}>
@@ -73,7 +97,7 @@ export function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
+            placeholder={config.emailPlaceholder}
             className="field py-2.5 text-base sm:text-sm"
           />
         </Field>
@@ -89,12 +113,8 @@ export function LoginForm() {
           />
         </Field>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="btn btn-primary w-full py-2.5"
-        >
-          {pending ? "Signing in…" : "Sign in"}
+        <button type="submit" disabled={pending} className={`btn w-full py-2.5 ${config.submitClass}`}>
+          {pending ? "Signing in…" : config.submitLabel}
           {!pending && <Icon name="arrowRight" className="size-4" />}
         </button>
       </form>
@@ -106,8 +126,8 @@ export function LoginForm() {
             Try a demo account
             <span className="h-px flex-1 bg-stone-200" />
           </div>
-          <ul className="space-y-2">
-            {DEMO_ACCOUNTS.map((account) => {
+          <ul key={portal} className="animate-rise space-y-2">
+            {config.demoAccounts.map((account) => {
               const selected = email === account.email;
               return (
                 <li key={account.email}>
@@ -117,8 +137,8 @@ export function LoginForm() {
                       setEmail(account.email);
                       setPassword(account.password);
                     }}
-                    className={`group flex w-full items-center gap-3 rounded-xl border bg-white px-3 py-2.5 text-left transition hover:-translate-y-px hover:border-leaf-300 hover:shadow-soft ${
-                      selected ? "border-leaf-400 ring-4 ring-leaf-500/10" : "border-stone-200"
+                    className={`group flex w-full items-center gap-3 rounded-xl border bg-white px-3 py-2.5 text-left transition hover:-translate-y-px hover:shadow-soft ${
+                      selected ? config.selectedClass : "border-stone-200 hover:border-stone-300"
                     }`}
                   >
                     <Avatar name={account.name} />
@@ -126,13 +146,7 @@ export function LoginForm() {
                       <span className="block text-sm font-medium text-stone-900">{account.name}</span>
                       <span className="block text-xs text-stone-500">{account.note}</span>
                     </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
-                        account.role === "Admin" ? "bg-stone-900 text-leaf-100" : "bg-leaf-50 text-leaf-700"
-                      }`}
-                    >
-                      {account.role}
-                    </span>
+                    <Icon name="arrowRight" className="size-4 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-stone-500" />
                   </button>
                 </li>
               );

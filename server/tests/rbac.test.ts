@@ -17,7 +17,7 @@ beforeAll(async () => {
 afterAll(stopTestDb);
 
 describe('unauthenticated access', () => {
-  it.each(['/api/v1/books', '/api/v1/books/BK001', '/api/v1/authors', '/api/v1/auth/me'])(
+  it.each(['/api/v1/books', '/api/v1/books/BK001', '/api/v1/authors', '/api/v1/admins', '/api/v1/auth/me'])(
     '%s → 401',
     async (path) => {
       const res = await request(app).get(path);
@@ -63,8 +63,8 @@ describe('author scope', () => {
     expect(byObjectId.status).toBe(404);
   });
 
-  it('gets 403 on admin-only endpoints', async () => {
-    const res = await priya.get('/api/v1/authors');
+  it.each(['/api/v1/authors', '/api/v1/admins'])('gets 403 on admin-only endpoint %s', async (path) => {
+    const res = await priya.get(path);
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('FORBIDDEN');
   });
@@ -100,6 +100,20 @@ describe('admin scope', () => {
       royaltyPaid: 16338,
       royaltyPending: 3570,
     });
+  });
+});
+
+describe('admin directory', () => {
+  it('lists the support team by name, without emails or password hashes', async () => {
+    const res = await admin.get('/api/v1/admins');
+
+    expect(res.status).toBe(200);
+    expect(res.body.meta.count).toBe(2);
+    expect(res.body.data.map((a: { name: string }) => a.name)).toEqual([
+      'Aisha Verma (Support Lead)',
+      'Rahul Mehta (Support Agent)',
+    ]);
+    for (const row of res.body.data) expect(Object.keys(row).sort()).toEqual(['id', 'name']);
   });
 });
 

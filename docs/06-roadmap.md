@@ -43,9 +43,11 @@ Four-day budget. The brief says to prioritise *"the core ticket flow and AI inte
 - [x] Empty states, loading skeletons, royalty explanations, stale-ticket badges *(done in Phase 2)*
 - [x] Admin queue counters *(done in Phase 2)*
 - [ ] Real file upload for attachments (bonus)
-- [ ] Admin "assign to teammate" dropdown (the API already supports any admin id)
+- [x] Admin "assign to teammate" dropdown (`GET /admins` + assignee picker)
+- [x] Health check reports database status (503 when MongoDB is down)
 
 ## Phase 6 — Ship
+- [x] Deploy config: `render.yaml` Blueprint, env matrix and order of operations (`02-architecture.md` §6)
 - [ ] Deploy: Atlas, then Render, then Vercel. Seed production.
-- [ ] README (setup, architecture, AI strategy, API link, limitations, credentials)
-- [ ] One-page write-up
+- [x] README (setup, architecture, AI strategy, API link, limitations, credentials)
+- [x] One-page write-up (`WRITEUP.md`)

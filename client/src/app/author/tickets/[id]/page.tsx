@@ -56,7 +56,7 @@ async function TicketDetail({ params, searchParams }: PageProps<"/author/tickets
       {query.created === "1" && (
         <p className="mb-4 flex animate-rise items-start gap-2 rounded-xl border border-leaf-200 bg-leaf-50 px-4 py-3 text-sm text-leaf-900">
           <Icon name="check" className="mt-0.5 size-4 text-leaf-600" />
-          Thanks — your ticket {ticket.ticketNumber} has been submitted. You&apos;ll see our reply right here.
+          Thanks, your request {ticket.ticketNumber} has been sent. Our reply will appear on this page.
         </p>
       )}
 

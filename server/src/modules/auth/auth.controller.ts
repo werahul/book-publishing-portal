@@ -5,8 +5,8 @@ import { currentUser } from '../../middleware/auth';
 import * as authService from './auth.service';
 
 export async function login(req: Request, res: Response) {
-  const { email, password } = req.body as LoginInput;
-  const { token, user } = await authService.login(email, password);
+  const { email, password, portal } = req.body as LoginInput;
+  const { token, user } = await authService.login(email, password, portal);
   setSessionCookie(res, token);
   res.json({ data: { user } });
 }

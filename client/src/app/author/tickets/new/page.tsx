@@ -21,7 +21,7 @@ export default function NewTicketPage({ searchParams }: PageProps<"/author/ticke
       <PageHeader
         eyebrow="Support"
         title="Raise a support request"
-        description="Tell us what's going on — the more detail you share, the faster we can help."
+        description="Tell us what's going on. The more specific you are, the quicker we can sort it out."
         backHref="/author/tickets"
         backLabel="My Tickets"
       />

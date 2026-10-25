@@ -3,21 +3,22 @@ import { createApp } from './app';
 import { connectDb, disconnectDb } from './config/db';
 import { env } from './config/env';
 import { settleBackgroundJobs } from './lib/background';
+import { logger } from './lib/logger';
 import { closeRealtime, initRealtime } from './realtime/realtime';
 
 async function main() {
   await connectDb();
-  console.log('[db] connected');
+  logger.info('[db] connected');
 
   // A plain http.Server (not app.listen) so Socket.IO shares the port with the REST API.
   const server = http.createServer(createApp());
   initRealtime(server);
   server.listen(env.PORT, () => {
-    console.log(`[api] listening on http://localhost:${env.PORT}/api/v1`);
+    logger.info(`[api] listening on http://localhost:${env.PORT}/api/v1`);
   });
 
   const shutdown = (signal: string) => {
-    console.log(`[api] ${signal} received, shutting down`);
+    logger.info(`[api] ${signal} received, shutting down`);
     // Closing Socket.IO also closes the HTTP server; let in-flight AI jobs write their results first.
     void closeRealtime()
       .then(settleBackgroundJobs)
@@ -28,6 +29,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[api] failed to start', err);
+  logger.error('[api] failed to start', err);
   process.exit(1);
 });

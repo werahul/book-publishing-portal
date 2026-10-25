@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@bookleaf/shared";
-import { homeFor } from "@/lib/routes";
+import { homeFor, loginPathFor } from "@/lib/routes";
 import { verifySession } from "@/lib/session";
 
 /**
@@ -25,7 +25,8 @@ export async function proxy(request: NextRequest) {
     return session ? redirectTo(homeFor(session.role)) : NextResponse.next();
   }
 
-  if (!session) return redirectTo("/login");
+  // Logged-out visits to the admin console land on the team sign-in tab.
+  if (!session) return redirectTo(pathname.startsWith("/admin") ? loginPathFor("admin") : loginPathFor("author"));
 
   const home = homeFor(session.role);
   const insideOwnPortal = pathname === home || pathname.startsWith(`${home}/`);

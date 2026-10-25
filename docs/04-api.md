@@ -26,6 +26,7 @@ Base URL: `/api/v1`. In the browser this is same-origin through the Next.js rewr
 | 401 | `UNAUTHENTICATED` | No cookie, or an invalid, expired or tampered token, or the user no longer exists |
 | 401 | `INVALID_CREDENTIALS` | Wrong email **or** password (deliberately the same response for both) |
 | 403 | `FORBIDDEN` | Authenticated but the wrong role |
+| 403 | `WRONG_PORTAL` | Login with correct credentials on the other sign-in tab (`portal` doesn't match the account's role). No cookie is set |
 | 404 | `NOT_FOUND` | Missing resource, **or one owned by another author** |
 | 404 | `ROUTE_NOT_FOUND` | Unknown endpoint |
 | 409 | `CONFLICT` | Unique constraint violated |
@@ -33,6 +34,7 @@ Base URL: `/api/v1`. In the browser this is same-origin through the Next.js rewr
 | 429 | `RATE_LIMITED` | Too many login attempts (10 per 15 min per IP) |
 | 500 | `INTERNAL_ERROR` | Unexpected. Details are logged server-side, never returned. |
 | 409 | `TICKET_CLOSED` | Also: AI draft requested for a closed ticket |
+| 503 | `SERVICE_UNAVAILABLE` | `GET /health` only: the API can't reach MongoDB |
 | 503 | `AI_UNAVAILABLE` | The LLM is down, rate-limited, timed out, returned unusable output, or no key is configured. Only the AI endpoints (`/ai-draft`, `/classify`) return it; everything else degrades silently |
 
 ---
@@ -40,7 +42,9 @@ Base URL: `/api/v1`. In the browser this is same-origin through the Next.js rewr
 ## Health
 
 ### `GET /health` — public
-`200 { "data": { "status": "ok", "uptime": 12.34 } }`
+`200 { "data": { "status": "ok", "db": "up", "uptime": 12.34 } }`
+
+Returns `503 SERVICE_UNAVAILABLE` while MongoDB is disconnected, so the host's health check (Render's `healthCheckPath`) sees a broken instance as unhealthy.
 
 ---
 
@@ -55,6 +59,7 @@ Body:
 |---|---|
 | `email` | valid email, trimmed, case-insensitive |
 | `password` | string, 1–128 chars |
+| `portal` | optional, `"author"` or `"admin"`: the sign-in tab the user chose. When set and it doesn't match the account's role, the login is refused with `403 WRONG_PORTAL`. Omit it to sign in with any role |
 
 `200`, plus a `Set-Cookie: bl_token=…; HttpOnly; SameSite=Lax; Path=/; Max-Age=86400` header (and `Secure` in production):
 ```json
@@ -70,7 +75,9 @@ Body:
   }
 }
 ```
-Errors: `400 VALIDATION_ERROR`, `401 INVALID_CREDENTIALS`, `429 RATE_LIMITED`.
+Errors: `400 VALIDATION_ERROR`, `401 INVALID_CREDENTIALS`, `403 WRONG_PORTAL`, `429 RATE_LIMITED`.
+
+The portal check runs only **after** the password is verified, so a wrong password always gets the generic 401 and the tab can't be used to find out which emails are admin accounts. Both portals share the same session cookie and JWT; the role inside the token decides what the user can do.
 
 ### `POST /auth/logout` — public
 Clears `bl_token` and returns `204`. It's idempotent: calling it without a session is fine.
@@ -160,6 +167,26 @@ Every author, with portfolio stats aggregated from `books`. Sorted by name.
   "meta": { "count": 10 }
 }
 ```
+Errors: `401 UNAUTHENTICATED`, `403 FORBIDDEN` (authors).
+
+---
+
+## Admins (admin)
+
+### `GET /admins` — admin only
+The support team, for the ticket assignee picker. Sorted by name. Only `id` and `name` are returned.
+
+`200`:
+```json
+{
+  "data": [
+    { "id": "6660…", "name": "Aisha Verma (Support Lead)" },
+    { "id": "6661…", "name": "Rahul Mehta (Support Agent)" }
+  ],
+  "meta": { "count": 2 }
+}
+```
+Pass an `id` as `assigneeId` to `PATCH /tickets/:id`.
 Errors: `401 UNAUTHENTICATED`, `403 FORBIDDEN` (authors).
 
 ---

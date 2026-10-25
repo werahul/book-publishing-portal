@@ -16,7 +16,7 @@ export function PortalError({ error, reset }: { error: Error & { digest?: string
       </span>
       <p className="font-display text-lg font-semibold text-stone-900">We couldn&apos;t load this page.</p>
       <p className="mt-1 text-sm text-stone-500">
-        This is usually temporary. Please try again — if it keeps happening, contact support@bookleaf.com.
+        It&apos;s usually a temporary problem on our side. Try again in a moment. If it keeps happening, email support@bookleaf.com.
       </p>
       <button
         type="button"

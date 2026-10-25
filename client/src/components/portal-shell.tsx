@@ -73,7 +73,7 @@ async function UserMenu() {
         <p className="text-sm font-medium text-stone-900">{data.user.name}</p>
         <p className="text-[11px] text-stone-500">{data.user.email}</p>
       </div>
-      <LogoutButton />
+      <LogoutButton portal={data.user.role} />
     </div>
   );
 }

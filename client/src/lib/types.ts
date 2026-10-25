@@ -63,6 +63,12 @@ export interface AuthorSummary {
   };
 }
 
+/** A support teammate, as listed by GET /admins (the assignee picker). */
+export interface AdminSummary {
+  id: string;
+  name: string;
+}
+
 // ── Tickets ──────────────────────────────────────────────────────────────────
 
 export interface ListMeta {

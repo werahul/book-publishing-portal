@@ -14,7 +14,7 @@ AI = AI Integration (25%), ARCH = Architecture & Code (25%), API = API Design (1
 |---|---|
 | **Author** | A BookLeaf author (seeded from the sample JSON). Sees only their own books, royalties and tickets. |
 | **Admin** | A BookLeaf support/ops team member. Sees every ticket and every author. |
-| **AI assistant** | A server-side service (Groq / Llama) that classifies tickets, scores priority and drafts replies. It never sends anything to an author by itself. |
+| **AI assistant** | A server-side service (Groq, gpt-oss models) that classifies tickets, scores priority and drafts replies. It never sends anything to an author by itself. |
 
 ---
 
@@ -138,5 +138,5 @@ From the brief: *"some published and earning royalties, some with pending payout
 
 - [ ] Public Git repo with a clean commit history
 - [ ] Live demo URL (author + admin portals), pre-seeded
-- [ ] README: local setup, architecture decisions, AI integration (prompts, errors, cost), API docs link, limitations, test credentials
-- [ ] One-page write-up: priorities, trade-offs, path to production
+- [x] README: local setup, architecture decisions, AI integration (prompts, errors, cost), API docs link, limitations, test credentials
+- [x] One-page write-up (`WRITEUP.md`): priorities, trade-offs, path to production

@@ -13,14 +13,21 @@ import {
 } from "@bookleaf/shared";
 import { SourceBadge } from "@/components/badges";
 import { Icon } from "@/components/icons";
-import { Avatar } from "@/components/ui";
 import { ApiError, apiFetch } from "@/lib/api";
-import type { AdminTicket } from "@/lib/types";
+import type { AdminSummary, AdminTicket } from "@/lib/types";
 
 const control = "field px-2.5 py-1.5";
 
 /** Status, triage overrides and assignment. Each change is saved immediately. */
-export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket; currentAdminId: string }) {
+export function TicketActions({
+  ticket,
+  currentAdminId,
+  admins,
+}: {
+  ticket: AdminTicket;
+  currentAdminId: string;
+  admins: AdminSummary[];
+}) {
   const router = useRouter();
   const [saving, setSaving] = useState<keyof UpdateTicketInput | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -93,29 +100,33 @@ export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket;
       </Row>
 
       <Row label="Assignee">
-        <div className="flex items-center justify-between gap-2 rounded-lg border border-stone-200 bg-stone-50/60 p-2">
-          <span className={`flex min-w-0 items-center gap-2 text-sm ${ticket.assignee ? "text-stone-900" : "font-medium text-amber-700"}`}>
-            {ticket.assignee ? <Avatar name={ticket.assignee.name} size="sm" /> : <Icon name="userPlus" className="size-4" />}
-            <span className="truncate">
-              {ticket.assignee ? (assignedToMe ? `${ticket.assignee.name} (you)` : ticket.assignee.name) : "Unassigned"}
-            </span>
-          </span>
-          {assignedToMe ? (
-            <button
-              type="button"
-              disabled={saving !== null}
-              onClick={() => save({ assigneeId: null })}
-              className="btn btn-ghost btn-sm"
-            >
-              Unassign
-            </button>
-          ) : (
+        <div className="flex items-center gap-2">
+          <select
+            value={ticket.assignee?.id ?? ""}
+            disabled={saving !== null}
+            onChange={(e) => save({ assigneeId: e.target.value || null })}
+            className={`${control} min-w-0 flex-1 ${ticket.assignee ? "" : "font-medium text-amber-700"}`}
+          >
+            <option value="">Unassigned</option>
+            {/* Keeps the current assignee selectable even if they've left the admin list. */}
+            {ticket.assignee && !admins.some((a) => a.id === ticket.assignee?.id) && (
+              <option value={ticket.assignee.id}>{ticket.assignee.name}</option>
+            )}
+            {admins.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.id === currentAdminId ? `${a.name} (you)` : a.name}
+              </option>
+            ))}
+          </select>
+          {/* The common case stays one click: claim the ticket without opening the picker. */}
+          {!assignedToMe && (
             <button
               type="button"
               disabled={saving !== null}
               onClick={() => save({ assigneeId: currentAdminId })}
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm shrink-0"
             >
+              <Icon name="userPlus" className="size-4" />
               {ticket.assignee ? "Take over" : "Assign to me"}
             </button>
           )}

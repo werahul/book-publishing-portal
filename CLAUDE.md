@@ -13,7 +13,9 @@ npm workspaces monorepo:
 | `packages/shared` | `@bookleaf/shared`: enums (`constants.ts`) and Zod request schemas (`schemas/`). Compiled to CJS in `dist/` by the root `postinstall`. **Rebuild after editing:** `npm run build:shared` |
 | `server/` | Express 5 + Mongoose 8 API, TypeScript (CJS). Feature modules in `src/modules/<feature>/` |
 | `client/` | Next.js 16 App Router + Tailwind v4. `src/proxy.ts` is the route guard (Next 16 renamed middleware → proxy) |
-| `docs/` | 01 requirements · 02 architecture · 03 data model · 04 API · 05 seed · 06 roadmap |
+| `docs/` | 01 requirements · 02 architecture · 03 data model · 04 API · 05 seed · 06 roadmap · 07 user guide + manual test URLs |
+| `README.md`, `WRITEUP.md` | Submission docs for the graders (credentials, AI strategy, limitations). Keep in sync with features |
+| `render.yaml` | Render Blueprint for the API. Deploy steps and env matrix: `docs/02-architecture.md` §6 |
 
 ## Commands (run from the repo root)
 
