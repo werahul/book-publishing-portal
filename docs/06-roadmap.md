@@ -5,7 +5,6 @@ Four-day budget. The brief says to prioritise *"the core ticket flow and AI inte
 ## Phase 1 — Foundation ✅ (current)
 - [x] Requirements written up as IDs (`01-requirements.md`)
 - [x] Architecture, data model, API conventions, seed plan (`02`–`05`)
-- [x] CLAUDE.md + project skills (`.claude/skills/`)
 - [x] Monorepo scaffold: `packages/shared`, `server`, `client`
 - [x] Zod-validated env, central error handling, `{ data }` / `{ error }` envelopes
 - [x] Mongoose models: User, Book, Ticket, Message, InternalNote, Counter

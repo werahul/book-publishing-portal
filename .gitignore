@@ -29,3 +29,8 @@ Thumbs.db
 
 # deployment
 .vercel
+
+# AI assistant instructions (kept locally, not part of the submission)
+CLAUDE.md
+.claude/
+client/AGENTS.md
