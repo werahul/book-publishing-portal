@@ -12,11 +12,12 @@ import {
   type UpdateTicketInput,
 } from "@bookleaf/shared";
 import { SourceBadge } from "@/components/badges";
+import { Icon } from "@/components/icons";
+import { Avatar } from "@/components/ui";
 import { ApiError, apiFetch } from "@/lib/api";
 import type { AdminTicket } from "@/lib/types";
 
-const control =
-  "w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600 disabled:opacity-60";
+const control = "field px-2.5 py-1.5";
 
 /** Status, triage overrides and assignment. Each change is saved immediately. */
 export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket; currentAdminId: string }) {
@@ -41,8 +42,8 @@ export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket;
   const assignedToMe = ticket.assignee?.id === currentAdminId;
 
   return (
-    <div className="space-y-4">
-      {error && <p className="rounded bg-red-50 px-2 py-1 text-sm text-red-700">{error}</p>}
+    <div className="mt-3 space-y-4">
+      {error && <p className="rounded-lg bg-red-50 px-2.5 py-1.5 text-sm text-red-700">{error}</p>}
 
       <Row label="Status">
         <select
@@ -92,16 +93,19 @@ export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket;
       </Row>
 
       <Row label="Assignee">
-        <div className="flex items-center justify-between gap-2">
-          <span className={`text-sm ${ticket.assignee ? "text-slate-900" : "text-amber-700"}`}>
-            {ticket.assignee ? (assignedToMe ? `${ticket.assignee.name} (you)` : ticket.assignee.name) : "Unassigned"}
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-stone-200 bg-stone-50/60 p-2">
+          <span className={`flex min-w-0 items-center gap-2 text-sm ${ticket.assignee ? "text-stone-900" : "font-medium text-amber-700"}`}>
+            {ticket.assignee ? <Avatar name={ticket.assignee.name} size="sm" /> : <Icon name="userPlus" className="size-4" />}
+            <span className="truncate">
+              {ticket.assignee ? (assignedToMe ? `${ticket.assignee.name} (you)` : ticket.assignee.name) : "Unassigned"}
+            </span>
           </span>
           {assignedToMe ? (
             <button
               type="button"
               disabled={saving !== null}
               onClick={() => save({ assigneeId: null })}
-              className="text-sm text-slate-500 hover:text-slate-800 disabled:opacity-60"
+              className="btn btn-ghost btn-sm"
             >
               Unassign
             </button>
@@ -110,7 +114,7 @@ export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket;
               type="button"
               disabled={saving !== null}
               onClick={() => save({ assigneeId: currentAdminId })}
-              className="rounded-md bg-slate-900 px-2.5 py-1 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60"
+              className="btn btn-primary btn-sm"
             >
               {ticket.assignee ? "Take over" : "Assign to me"}
             </button>
@@ -124,7 +128,7 @@ export function TicketActions({ ticket, currentAdminId }: { ticket: AdminTicket;
 function Row({ label, badge, children }: { label: string; badge?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-stone-500">
         {label}
         {badge}
       </div>

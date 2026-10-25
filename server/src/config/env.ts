@@ -28,8 +28,16 @@ const envSchema = z.object({
 
   // AI is optional at boot: without a key the app runs and falls back to manual handling.
   GROQ_API_KEY: z.string().optional(),
-  GROQ_MODEL_CLASSIFY: z.string().default('llama-3.1-8b-instant'),
-  GROQ_MODEL_DRAFT: z.string().default('llama-3.3-70b-versatile'),
+  // Groq retired the Llama 3.x models; see docs/02-architecture.md §4.2 for the choice.
+  GROQ_MODEL_CLASSIFY: z.string().default('openai/gpt-oss-20b'),
+  GROQ_MODEL_DRAFT: z.string().default('openai/gpt-oss-120b'),
+
+  /**
+   * Where browsers open the Socket.IO connection (this API's public origin).
+   * Returned by GET /auth/socket-token, so the client needs no NEXT_PUBLIC_ variable;
+   * the Next.js rewrite can't proxy WebSockets.
+   */
+  SOCKET_PUBLIC_URL: z.url().default('http://localhost:4000'),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -2,6 +2,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { settleBackgroundJobs } from '../src/lib/background';
 import { seedDatabase } from '../src/seed/seed';
 
 export const AUTHOR_PASSWORD = 'Author@123';
@@ -21,6 +22,8 @@ export async function startTestDb(): Promise<void> {
 }
 
 export async function stopTestDb(): Promise<void> {
+  // Ticket creation starts background AI jobs; let them finish before the DB goes away.
+  await settleBackgroundJobs();
   await mongoose.disconnect();
   await mongod?.stop();
 }

@@ -6,13 +6,15 @@ import { loginSchema } from "@bookleaf/shared";
 import { ApiError, apiFetch } from "@/lib/api";
 import { homeFor } from "@/lib/routes";
 import type { ApiData, AuthUser } from "@/lib/types";
+import { Icon } from "@/components/icons";
+import { Avatar } from "@/components/ui";
 
 type FieldErrors = Partial<Record<"email" | "password", string>>;
 
 const DEMO_ACCOUNTS = [
-  { label: "Author — Priya Sharma", email: "priya.sharma@email.com", password: "Author@123" },
-  { label: "Author — Sneha Kulkarni (book in production)", email: "sneha.kulkarni@email.com", password: "Author@123" },
-  { label: "Admin — Support Lead", email: "admin@bookleaf.com", password: "Admin@123" },
+  { name: "Priya Sharma", role: "Author", note: "Live books & royalties", email: "priya.sharma@email.com", password: "Author@123" },
+  { name: "Sneha Kulkarni", role: "Author", note: "Book in production", email: "sneha.kulkarni@email.com", password: "Author@123" },
+  { name: "Support Lead", role: "Admin", note: "Support console", email: "admin@bookleaf.com", password: "Admin@123" },
 ];
 const SHOW_DEMO = process.env.NEXT_PUBLIC_SHOW_DEMO_LOGINS !== "false";
 
@@ -59,7 +61,8 @@ export function LoginForm() {
     <div className="space-y-6">
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {formError && (
-          <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <Icon name="alert" className="mt-0.5 size-4" />
             {formError}
           </p>
         )}
@@ -70,7 +73,8 @@ export function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            placeholder="you@example.com"
+            className="field py-2.5 text-base sm:text-sm"
           />
         </Field>
 
@@ -80,37 +84,59 @@ export function LoginForm() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+            placeholder="••••••••"
+            className="field py-2.5 text-base sm:text-sm"
           />
         </Field>
 
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-md bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="btn btn-primary w-full py-2.5"
         >
           {pending ? "Signing in…" : "Sign in"}
+          {!pending && <Icon name="arrowRight" className="size-4" />}
         </button>
       </form>
 
       {SHOW_DEMO && (
-        <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Demo accounts</p>
-          <ul className="space-y-1">
-            {DEMO_ACCOUNTS.map((account) => (
-              <li key={account.email}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail(account.email);
-                    setPassword(account.password);
-                  }}
-                  className="text-left text-sm text-emerald-700 hover:underline"
-                >
-                  {account.label}
-                </button>
-              </li>
-            ))}
+        <div>
+          <div className="mb-3 flex items-center gap-3 text-xs font-semibold tracking-wider text-stone-400 uppercase">
+            <span className="h-px flex-1 bg-stone-200" />
+            Try a demo account
+            <span className="h-px flex-1 bg-stone-200" />
+          </div>
+          <ul className="space-y-2">
+            {DEMO_ACCOUNTS.map((account) => {
+              const selected = email === account.email;
+              return (
+                <li key={account.email}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(account.email);
+                      setPassword(account.password);
+                    }}
+                    className={`group flex w-full items-center gap-3 rounded-xl border bg-white px-3 py-2.5 text-left transition hover:-translate-y-px hover:border-leaf-300 hover:shadow-soft ${
+                      selected ? "border-leaf-400 ring-4 ring-leaf-500/10" : "border-stone-200"
+                    }`}
+                  >
+                    <Avatar name={account.name} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-stone-900">{account.name}</span>
+                      <span className="block text-xs text-stone-500">{account.note}</span>
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
+                        account.role === "Admin" ? "bg-stone-900 text-leaf-100" : "bg-leaf-50 text-leaf-700"
+                      }`}
+                    >
+                      {account.role}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -120,8 +146,8 @@ export function LoginForm() {
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-stone-700">{label}</span>
       {children}
       {error && <span className="block text-sm text-red-600">{error}</span>}
     </label>

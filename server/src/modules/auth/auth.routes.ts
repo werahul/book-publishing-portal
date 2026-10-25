@@ -10,3 +10,4 @@ export const authRouter = Router();
 authRouter.post('/login', loginRateLimiter, validate({ body: loginSchema }), controller.login);
 authRouter.post('/logout', controller.logout);
 authRouter.get('/me', requireAuth, controller.me);
+authRouter.get('/socket-token', requireAuth, controller.socketToken);

@@ -32,7 +32,8 @@ Base URL: `/api/v1`. In the browser this is same-origin through the Next.js rewr
 | 409 | `TICKET_CLOSED` | Reply attempted on a closed ticket |
 | 429 | `RATE_LIMITED` | Too many login attempts (10 per 15 min per IP) |
 | 500 | `INTERNAL_ERROR` | Unexpected. Details are logged server-side, never returned. |
-| 503 | `AI_UNAVAILABLE` | *(Phase 3)* the LLM failed and no fallback applies (draft endpoint only) |
+| 409 | `TICKET_CLOSED` | Also: AI draft requested for a closed ticket |
+| 503 | `AI_UNAVAILABLE` | The LLM is down, rate-limited, timed out, returned unusable output, or no key is configured. Only the AI endpoints (`/ai-draft`, `/classify`) return it; everything else degrades silently |
 
 ---
 
@@ -76,6 +77,17 @@ Clears `bl_token` and returns `204`. It's idempotent: calling it without a sessi
 
 ### `GET /auth/me` — authenticated
 `200 { "data": { "user": { ...same shape as login... } } }`
+Errors: `401 UNAUTHENTICATED`.
+
+### `GET /auth/socket-token` — authenticated
+Exchanges the session cookie for a token for the Socket.IO handshake. The cookie is httpOnly and the Next.js rewrite can't proxy WebSockets, so the browser connects to the API origin directly with this token.
+```json
+{ "data": { "token": "eyJ…", "url": "http://localhost:4000", "expiresIn": 60 } }
+```
+- `token`: an HS256 JWT with `aud: "bookleaf-socket"`, valid for **60 s** (only the handshake needs it). It is rejected as a session cookie, and a session token is rejected at the socket handshake.
+- `url`: where to connect (`SOCKET_PUBLIC_URL`), so the client needs no `NEXT_PUBLIC_` variable.
+- Sent with `Cache-Control: no-store`.
+
 Errors: `401 UNAUTHENTICATED`.
 
 ---
@@ -172,7 +184,11 @@ An author asking for another author's ticket gets **404**. Internal notes are ne
 | `description` | 20–5,000 chars, trimmed |
 | `attachments` | up to 5 × `{ name, size (≤ 10 MB), mimeType }`. Metadata only; upload is out of scope. Default `[]` |
 
-`201 { data: ticket }`. The ticket gets a human-friendly number (`BL-1011`, …) and is **triaged immediately** by the keyword classifier (`categorySource`/`prioritySource = "fallback"`, `ai.state = "pending"`). The LLM refines this asynchronously in Phase 3.
+`201 { data: ticket }`. The ticket gets a human-friendly number (`BL-1011`, …) and is **triaged immediately** by the keyword classifier (`categorySource`/`prioritySource = "fallback"`, `ai.state = "pending"`). The response never waits for the LLM. A background job then classifies it with the LLM:
+- **On success:** `ai.state = "done"`, `ai.classification` is recorded, and category/priority switch to `source = "ai"`, unless an admin has already overridden them.
+- **On failure:** `ai.state = "failed"` with a short `ai.error`, and the keyword triage stays in place.
+
+Either way a `ticket:updated` socket event follows.
 Errors: `400 VALIDATION_ERROR` (incl. `body.bookId` when the book isn't the author's), `403` for admins.
 
 ### `GET /tickets` — authenticated
@@ -245,14 +261,52 @@ Body: `{ body: 1–5,000 chars }`. `201 { data: { id, body, admin: { id, name },
 
 ---
 
-## Planned endpoints (later phases)
+## AI assistance (admin only)
 
-| Method | Path | Access | Purpose |
-|---|---|---|---|
-| GET | `/tickets/:id/ai-draft` | admin | Cached draft, or generate one. `503 AI_UNAVAILABLE` → write manually |
-| POST | `/tickets/:id/ai-draft` | admin | Force regenerate |
-| POST | `/tickets/:id/classify` | admin | Re-run AI classification |
-| GET | `/auth/socket-token` | auth | Short-lived (60 s) token for the Socket.IO handshake |
+Drafts are **never sent automatically**. The admin edits the text and sends it through `POST /tickets/:id/messages` with `aiAssisted: true`.
+
+### `GET /tickets/:id/ai-draft` — admin only
+Returns the cached draft. On a cache miss it generates one with the draft model and caches it. Concurrent misses on the same ticket share one model call.
+```json
+{ "data": { "body": "Hi Priya,
+
+…
+
+Warm regards,
+BookLeaf Author Support",
+            "model": "openai/gpt-oss-120b", "generatedAt": "2026-10-24T10:02:11.000Z" },
+  "meta": { "cached": true } }
+```
+- **Prompt context** (cost control): only the KB section(s) for the ticket's category, the tone guide, one matching sample Q→A, a fact sheet for **this ticket's book only** (royalty figures and the computed next payout date / stage / platforms, depending on the category), and the **last 3 messages**, truncated.
+- **Cache invalidation:** any new message on the ticket clears the cache. An author message needs a fresh answer, and an admin reply has just used the draft. A draft that went stale while generating (the ticket changed meanwhile) is returned but not cached.
+
+Errors: `401`, `403` (authors, including the ticket's own author), `400` malformed id, `404`, `409 TICKET_CLOSED`, `503 AI_UNAVAILABLE` (the message tells the admin to reply manually; nothing is cached).
+
+### `POST /tickets/:id/ai-draft` — admin only
+Always calls the model and replaces the cache. Same response with `meta.cached: false`, and the same errors.
+
+### `POST /tickets/:id/classify` — admin only
+Re-runs LLM classification synchronously, e.g. after `ai.state = "failed"`. `200 { data: ticket }` (admin DTO). Admin overrides are kept, and only `fallback`/`ai` decisions are replaced. The ISBN policy floor applies: `isbn_metadata` is always at least `high`.
+Errors: `401`, `403`, `400`, `404`, `503 AI_UNAVAILABLE` (the failure is recorded in `ai.error` and the keyword triage stays).
+
+---
+
+## Real-time (Socket.IO)
+
+Connect to `url` from `GET /auth/socket-token` with `io(url, { auth: { token } })`. A bad, missing, expired or session token fails the handshake with `connect_error: "UNAUTHENTICATED"`.
+
+| Room | Who joins | Receives |
+|---|---|---|
+| `user:<id>` | every user | events for their own tickets |
+| `admins` | admins | events for every ticket |
+
+| Event | Emitted when | To |
+|---|---|---|
+| `ticket:updated` | ticket created; AI classification finished or failed; admin `PATCH` | author + admins |
+| `ticket:updated` | internal note added | admins only |
+| `ticket:message` | any reply posted | author + admins |
+
+The payload is always `{ ticketId, ticketNumber }`. Events only **invalidate**: the client re-fetches through the REST endpoints above, so RBAC and DTO whitelisting stay in one place and no ticket content (or admin-only data) travels over the socket. If the socket can't connect, the web client falls back to polling every 15 s.
 
 ---
 

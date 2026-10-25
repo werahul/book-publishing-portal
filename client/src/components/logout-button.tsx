@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
+import { disconnectRealtime } from "@/lib/realtime";
+import { Icon } from "./icons";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -10,6 +12,7 @@ export function LogoutButton() {
 
   async function logout() {
     setPending(true);
+    disconnectRealtime();
     try {
       await apiFetch("/auth/logout", { method: "POST" });
     } finally {
@@ -24,9 +27,12 @@ export function LogoutButton() {
       type="button"
       onClick={logout}
       disabled={pending}
-      className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+      title="Sign out"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-stone-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
     >
-      {pending ? "Signing out…" : "Sign out"}
+      <Icon name="logout" className="size-4" />
+      <span className="hidden lg:inline">{pending ? "Signing out…" : "Sign out"}</span>
+      <span className="sr-only lg:hidden">Sign out</span>
     </button>
   );
 }

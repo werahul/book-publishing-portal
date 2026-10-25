@@ -38,3 +38,14 @@ ticketsRouter.post(
   validate({ params: ticketIdParamSchema, body: createNoteSchema }),
   controller.addNote,
 );
+
+// AI assistance: admin-only. Drafts are never sent automatically; an admin posts the
+// (edited) text through POST /:id/messages with aiAssisted=true.
+ticketsRouter.get('/:id/ai-draft', requireRole('admin'), validate({ params: ticketIdParamSchema }), controller.getAiDraft);
+ticketsRouter.post(
+  '/:id/ai-draft',
+  requireRole('admin'),
+  validate({ params: ticketIdParamSchema }),
+  controller.regenerateAiDraft,
+);
+ticketsRouter.post('/:id/classify', requireRole('admin'), validate({ params: ticketIdParamSchema }), controller.reclassify);

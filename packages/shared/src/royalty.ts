@@ -36,3 +36,36 @@ export function nextPayoutWindow(today: Date = new Date()): PayoutWindow {
 export function isBelowPayoutThreshold(pendingInr: number): boolean {
   return pendingInr > 0 && pendingInr < ROYALTY_PAYOUT_THRESHOLD_INR;
 }
+
+export interface PayoutStatus {
+  /** Pending is payable (≥ threshold) but the last payout window that has already closed was missed. */
+  overdue: boolean;
+  /** The missed window, when overdue. */
+  missed: PayoutWindow | null;
+}
+
+/**
+ * Whether BookLeaf appears to be behind on a book's royalties as of `today`.
+ * The most recent window whose 45-day deadline has passed is the quarter before
+ * `nextPayoutWindow(today)`; if pending is above the threshold and nothing has been
+ * paid since that quarter ended (or ever, for a book live before it), that payout was missed.
+ * e.g. on 24 Oct 2026, ₹3,570 pending and last paid 15 Oct 2025 → the quarter ending
+ * 30 Jun 2026 (due 14 Aug 2026) was missed.
+ */
+export function payoutStatus(
+  pendingInr: number,
+  lastPayoutDate: Date | null,
+  publicationDate: Date | null,
+  today: Date = new Date(),
+): PayoutStatus {
+  const notOverdue: PayoutStatus = { overdue: false, missed: null };
+  if (pendingInr < ROYALTY_PAYOUT_THRESHOLD_INR) return notOverdue;
+
+  const next = nextPayoutWindow(today);
+  // Day 0 of the month two before next.quarterEnd's month = last day of the previous quarter.
+  const quarterEnd = new Date(Date.UTC(next.quarterEnd.getUTCFullYear(), next.quarterEnd.getUTCMonth() - 2, 0));
+  const since = lastPayoutDate ?? publicationDate;
+  if (!since || new Date(since).getTime() >= quarterEnd.getTime()) return notOverdue;
+
+  return { overdue: true, missed: { quarterEnd, payoutBy: new Date(quarterEnd.getTime() + PAYOUT_WINDOW_DAYS * DAY_MS) } };
+}

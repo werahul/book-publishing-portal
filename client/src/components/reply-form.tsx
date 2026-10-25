@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { createMessageSchema } from "@bookleaf/shared";
 import { ApiError, apiFetch } from "@/lib/api";
+import { Icon } from "./icons";
 
 /** Author follow-up box on their own ticket. */
 export function ReplyForm({ ticketId, hint }: { ticketId: string; hint?: string }) {
@@ -36,7 +37,8 @@ export function ReplyForm({ ticketId, hint }: { ticketId: string; hint?: string 
   const busy = sending || refreshing;
   return (
     <form onSubmit={onSubmit} className="space-y-2">
-      <label htmlFor="reply" className="block text-sm font-medium text-slate-700">
+      <label htmlFor="reply" className="flex items-center gap-2 font-display text-lg font-semibold text-stone-900">
+        <Icon name="message" className="size-5 text-leaf-600" />
         Add a reply
       </label>
       <textarea
@@ -46,17 +48,18 @@ export function ReplyForm({ ticketId, hint }: { ticketId: string; hint?: string 
         rows={4}
         maxLength={10000}
         placeholder="Share more details or answer our questions…"
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+        className="field leading-relaxed"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-stone-500">{hint}</p>
         <button
           type="submit"
           disabled={busy}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="btn btn-primary"
         >
           {busy ? "Sending…" : "Send reply"}
+          {!busy && <Icon name="arrowRight" className="size-4" />}
         </button>
       </div>
     </form>

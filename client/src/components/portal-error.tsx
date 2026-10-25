@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Icon } from "./icons";
 
 /** Friendly fallback when a portal page fails (e.g. the API is unreachable). */
 export function PortalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -9,15 +10,18 @@ export function PortalError({ error, reset }: { error: Error & { digest?: string
   }, [error]);
 
   return (
-    <div className="rounded-lg border border-red-200 bg-white p-8 text-center">
-      <p className="font-medium text-slate-900">We couldn&apos;t load this page.</p>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="animate-rise rounded-2xl border border-red-200 bg-white p-10 text-center shadow-soft">
+      <span className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-100">
+        <Icon name="alert" className="size-6" />
+      </span>
+      <p className="font-display text-lg font-semibold text-stone-900">We couldn&apos;t load this page.</p>
+      <p className="mt-1 text-sm text-stone-500">
         This is usually temporary. Please try again — if it keeps happening, contact support@bookleaf.com.
       </p>
       <button
         type="button"
         onClick={reset}
-        className="mt-4 rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+        className="btn btn-primary mt-5"
       >
         Try again
       </button>

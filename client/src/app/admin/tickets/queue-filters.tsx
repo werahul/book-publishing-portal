@@ -10,6 +10,7 @@ import {
   TICKET_STATUSES,
   TICKET_STATUS_LABELS,
 } from "@bookleaf/shared";
+import { Icon } from "@/components/icons";
 
 /** The raw URL params the queue understands. Absent status = active (open + in progress). */
 export interface QueueParams {
@@ -38,8 +39,7 @@ const SORT_OPTIONS = [
   { value: "idle", label: "Longest without activity" },
 ];
 
-const control =
-  "rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600";
+const control = "field w-auto px-2.5 py-1.5";
 
 /** Filters live in the URL so a filtered queue can be bookmarked or shared with a teammate. */
 export function QueueFilters({ params, authorName }: { params: QueueParams; authorName?: string }) {
@@ -65,7 +65,9 @@ export function QueueFilters({ params, authorName }: { params: QueueParams; auth
   const hasFilters = Object.entries(params).some(([k, v]) => v && k !== "sort");
 
   return (
-    <div className={`space-y-3 transition-opacity ${pending ? "opacity-60" : ""}`}>
+    <div
+      className={`space-y-3 rounded-xl border border-stone-200/80 bg-white/80 p-4 shadow-soft backdrop-blur transition-opacity ${pending ? "opacity-60" : ""}`}
+    >
       <div className="flex flex-wrap items-end gap-2">
         <Select label="Status" value={params.status ?? ""} options={STATUS_OPTIONS} onChange={(status) => update({ status })} />
         <Select
@@ -91,11 +93,11 @@ export function QueueFilters({ params, authorName }: { params: QueueParams; auth
           onChange={(assignee) => update({ assignee })}
         />
         <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-500">Created from</span>
+          <span className="block text-xs font-medium text-stone-500">Created from</span>
           <input type="date" value={params.from ?? ""} max={params.to} onChange={(e) => update({ from: e.target.value })} className={control} />
         </label>
         <label className="space-y-1">
-          <span className="block text-xs font-medium text-slate-500">to</span>
+          <span className="block text-xs font-medium text-stone-500">to</span>
           <input type="date" value={params.to ?? ""} min={params.from} onChange={(e) => update({ to: e.target.value })} className={control} />
         </label>
         <Select label="Sort" value={params.sort ?? ""} options={SORT_OPTIONS} onChange={(sort) => update({ sort })} />
@@ -103,22 +105,25 @@ export function QueueFilters({ params, authorName }: { params: QueueParams; auth
 
       <div className="flex flex-wrap items-center gap-2">
         <form onSubmit={onSearch} className="flex flex-1 gap-2">
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search subject, description or ticket number (e.g. BL-1002)"
-            className={`${control} min-w-0 flex-1`}
-          />
-          <button type="submit" className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+          <div className="relative min-w-0 flex-1">
+            <Icon name="search" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search subject, description or ticket number (e.g. BL-1002)"
+              className="field py-1.5 pl-9"
+            />
+          </div>
+          <button type="submit" className="btn btn-secondary py-1.5">
             Search
           </button>
         </form>
         {authorName && (
-          <span className="flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-xs text-white">
+          <span className="flex items-center gap-1 rounded-full bg-leaf-800 py-1 pr-1.5 pl-3 text-xs font-medium text-white shadow-sm">
             Author: {authorName}
-            <button type="button" aria-label="Clear author filter" onClick={() => update({ authorId: undefined })} className="ml-1 text-slate-300 hover:text-white">
-              ✕
+            <button type="button" aria-label="Clear author filter" onClick={() => update({ authorId: undefined })} className="ml-1 grid size-5 place-items-center rounded-full text-leaf-100 hover:bg-white/15 hover:text-white">
+              <Icon name="x" className="size-3" strokeWidth={2.5} />
             </button>
           </span>
         )}
@@ -129,8 +134,9 @@ export function QueueFilters({ params, authorName }: { params: QueueParams; auth
               setSearch("");
               startTransition(() => router.replace(pathname));
             }}
-            className="text-sm text-slate-500 hover:text-slate-800"
+            className="btn btn-ghost btn-sm text-sm"
           >
+            <Icon name="x" className="size-3.5" />
             Reset filters
           </button>
         )}
@@ -152,7 +158,7 @@ function Select({
 }) {
   return (
     <label className="space-y-1">
-      <span className="block text-xs font-medium text-slate-500">{label}</span>
+      <span className="block text-xs font-medium text-stone-500">{label}</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} className={control}>
         {options.map((o) => (
           <option key={o.value} value={o.value}>

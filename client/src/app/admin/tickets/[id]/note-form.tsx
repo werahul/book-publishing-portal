@@ -42,14 +42,14 @@ export function NoteForm({ ticketId }: { ticketId: string }) {
         rows={3}
         maxLength={5000}
         placeholder="Context for the team (not visible to the author)…"
-        className="w-full rounded-md border border-amber-200 bg-amber-50/50 px-3 py-2 text-sm focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+        className="field border-amber-200 bg-white hover:border-amber-300 focus:border-amber-400 focus:ring-amber-400/20"
       />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex justify-end">
         <button
           type="submit"
           disabled={saving || refreshing}
-          className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-50 disabled:opacity-60"
+          className="btn btn-sm bg-amber-100 text-amber-900 ring-1 ring-amber-300 hover:bg-amber-200"
         >
           {saving || refreshing ? "Saving…" : "Add internal note"}
         </button>

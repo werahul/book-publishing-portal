@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { MAX_ATTACHMENTS, createTicketSchema, type CreateTicketInput } from "@bookleaf/shared";
 import { ApiError, apiFetch } from "@/lib/api";
+import { Icon } from "@/components/icons";
 import { formatBytes } from "@/lib/format";
 import type { ApiData, AuthorTicket } from "@/lib/types";
 
@@ -15,8 +16,7 @@ interface BookOption {
 
 type FieldErrors = Partial<Record<"bookId" | "subject" | "description" | "attachments", string>>;
 
-const inputClass =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-600";
+const inputClass = "field";
 
 export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; initialBookId: string }) {
   const router = useRouter();
@@ -81,7 +81,8 @@ export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; i
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-5">
       {formError && (
-        <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <Icon name="alert" className="mt-0.5 size-4" />
           {formError}
         </p>
       )}
@@ -97,7 +98,7 @@ export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; i
           ))}
         </select>
         {selectedBook?.inProduction && (
-          <p className="mt-1 text-xs text-slate-500">We&apos;ll include this book&apos;s current production stage when we look into it.</p>
+          <p className="mt-1 text-xs text-stone-500">We&apos;ll include this book&apos;s current production stage when we look into it.</p>
         )}
       </Field>
 
@@ -120,13 +121,16 @@ export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; i
           rows={7}
           maxLength={5000}
           placeholder="Include what you expected, what happened, and any dates, amounts or order numbers that help."
-          className={inputClass}
+          className={`${inputClass} leading-relaxed`}
         />
-        <p className="mt-1 text-right text-xs text-slate-400">{description.trim().length} / 5,000</p>
+        <p className="mt-1 text-right text-xs text-stone-400 tabular-nums">{description.trim().length} / 5,000</p>
       </Field>
 
       <Field label="Attachments (optional)" error={errors.attachments}>
-        <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-slate-300 px-3 py-4 text-sm text-slate-500 hover:bg-slate-50">
+        <label className="group flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-stone-300 bg-stone-50/50 px-3 py-6 text-center text-sm text-stone-500 transition hover:border-leaf-400 hover:bg-leaf-50/50 hover:text-leaf-800">
+          <span className="grid size-10 place-items-center rounded-full bg-white text-leaf-600 shadow-soft ring-1 ring-stone-200 transition group-hover:scale-105">
+            <Icon name="upload" className="size-5" />
+          </span>
           <input type="file" multiple className="sr-only" onChange={onFilesChosen} disabled={files.length >= MAX_ATTACHMENTS} />
           {files.length >= MAX_ATTACHMENTS
             ? `Maximum of ${MAX_ATTACHMENTS} files`
@@ -135,32 +139,34 @@ export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; i
         {files.length > 0 && (
           <ul className="mt-2 space-y-1">
             {files.map((file, i) => (
-              <li key={`${file.name}-${i}`} className="flex items-center justify-between rounded bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                <span className="truncate">
+              <li key={`${file.name}-${i}`} className="flex items-center justify-between rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600">
+                <span className="flex min-w-0 items-center gap-1.5 truncate">
+                  <Icon name="paperclip" className="size-3.5 text-stone-400" />
                   {file.name} · {formatBytes(file.size)}
                 </span>
-                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="ml-2 text-slate-400 hover:text-red-600">
+                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))} className="ml-2 text-stone-400 hover:text-red-600">
                   Remove
                 </button>
               </li>
             ))}
           </ul>
         )}
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-stone-400">
           File names are shared with our team; if we need the files themselves we&apos;ll ask you in the ticket.
         </p>
       </Field>
 
-      <div className="flex justify-end gap-2">
-        <button type="button" onClick={() => router.back()} className="rounded-md px-4 py-2 text-sm text-slate-600 hover:bg-slate-100">
+      <div className="flex justify-end gap-2 border-t border-stone-100 pt-5">
+        <button type="button" onClick={() => router.back()} className="btn btn-ghost">
           Cancel
         </button>
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          className="btn btn-primary"
         >
           {pending ? "Submitting…" : "Submit ticket"}
+          {!pending && <Icon name="arrowRight" className="size-4" />}
         </button>
       </div>
     </form>
@@ -169,8 +175,8 @@ export function NewTicketForm({ books, initialBookId }: { books: BookOption[]; i
 
 function Field({ label, htmlFor, error, children }: { label: string; htmlFor?: string; error?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700">
+    <div className="space-y-1.5">
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-stone-800">
         {label}
       </label>
       {children}

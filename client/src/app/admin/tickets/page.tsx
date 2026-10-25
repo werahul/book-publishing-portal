@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CategoryLabel, PriorityBadge, SourceBadge, StatusBadge } from "@/components/badges";
-import { Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { CategoryLabel, PriorityBadge, ReplyNudge, SourceBadge, StatusBadge } from "@/components/badges";
+import { Icon } from "@/components/icons";
+import { LiveUpdates } from "@/components/live-updates";
+import { Avatar, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { formatAge } from "@/lib/format";
 import { serverFetch } from "@/lib/server-api";
 import type { AdminTicket, ApiData, AuthorSummary, ListMeta } from "@/lib/types";
@@ -15,7 +17,9 @@ const PARAM_KEYS = ["status", "category", "priority", "assignee", "authorId", "f
 export default function QueuePage({ searchParams }: PageProps<"/admin/tickets">) {
   return (
     <>
+      <LiveUpdates />
       <PageHeader
+        eyebrow="Support Console"
         title="Ticket queue"
         description="Unresolved tickets first, then by priority, then oldest — so nothing urgent waits."
       />
@@ -56,11 +60,11 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/tickets">, "search
       <QueueFilters params={params} authorName={authorName} />
 
       {tickets.length === 0 ? (
-        <EmptyState title="No tickets match these filters" description="Try widening the status or date range." />
+        <EmptyState icon="search" title="No tickets match these filters" description="Try widening the status or date range." />
       ) : (
-        <Card className="overflow-x-auto">
+        <Card className="animate-rise overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-stone-200 bg-stone-50/80 text-left text-xs tracking-wider text-stone-500 uppercase">
               <tr>
                 <th className="px-3 py-2 font-medium">Priority</th>
                 <th className="px-3 py-2 font-medium">Ticket</th>
@@ -71,7 +75,7 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/tickets">, "search
                 <th className="px-3 py-2 text-right font-medium">Last activity</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-stone-100">
               {tickets.map((t) => (
                 <QueueRow key={t.id} ticket={t} />
               ))}
@@ -88,42 +92,64 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/tickets">, "search
 function QueueRow({ ticket: t }: { ticket: AdminTicket }) {
   const href = `/admin/tickets/${t.id}`;
   const awaitingUs = t.isActive && t.lastReplyRole !== "admin";
-  const rowAccent = t.priority === "critical" && t.isActive ? "border-l-4 border-l-red-500" : "border-l-4 border-l-transparent";
+  const rowAccent =
+    t.priority === "critical" && t.isActive
+      ? "border-l-[3px] border-l-red-500 bg-red-50/30"
+      : "border-l-[3px] border-l-transparent";
 
   return (
-    <tr className={`${rowAccent} ${t.isActive ? "" : "text-slate-500"} hover:bg-slate-50`}>
-      <td className="px-3 py-2.5">
+    <tr className={`group transition ${rowAccent} ${t.isActive ? "" : "text-stone-500 opacity-75"} hover:bg-leaf-50/40`}>
+      <td className="px-3 py-3">
         <div className="flex items-center gap-1">
           <PriorityBadge priority={t.priority} />
           <SourceBadge source={t.prioritySource} />
         </div>
       </td>
-      <td className="max-w-md px-3 py-2.5">
-        <Link href={href} className="block">
-          <span className="block truncate font-medium text-slate-900 hover:text-emerald-700">{t.subject}</span>
-          <span className="block text-xs text-slate-500">
-            {t.ticketNumber} · {t.author.name}
-            {t.book && <> · {t.book.title}</>}
+      <td className="max-w-md px-3 py-3">
+        <Link href={href} className="flex items-center gap-3">
+          <Avatar name={t.author.name} />
+          <span className="min-w-0">
+            <span className="block truncate font-medium text-stone-900 group-hover:text-leaf-800">{t.subject}</span>
+            <span className="block truncate text-xs text-stone-500">
+              <span className="font-mono">{t.ticketNumber}</span> · {t.author.name}
+              {t.book && <> · {t.book.title}</>}
+            </span>
           </span>
         </Link>
       </td>
-      <td className="px-3 py-2.5 text-xs">
+      <td className="px-3 py-3 text-xs">
         <div className="flex items-center gap-1">
           <CategoryLabel category={t.category} />
           <SourceBadge source={t.categorySource} />
         </div>
       </td>
-      <td className="px-3 py-2.5">
+      <td className="px-3 py-3">
         <div className="flex flex-col items-start gap-1">
           <StatusBadge status={t.status} />
-          {awaitingUs && <span className="text-[11px] font-medium text-sky-700">Awaiting our reply</span>}
+          {awaitingUs && <ReplyNudge tone="sky">Awaiting our reply</ReplyNudge>}
         </div>
       </td>
-      <td className="px-3 py-2.5 text-xs">{t.assignee?.name ?? <span className="text-amber-700">Unassigned</span>}</td>
-      <td className="px-3 py-2.5 text-right text-xs tabular-nums">{formatAge(t.createdAt)}</td>
-      <td className="px-3 py-2.5 text-right text-xs tabular-nums">
+      <td className="px-3 py-3 text-xs">
+        {t.assignee ? (
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
+            <Avatar name={t.assignee.name} size="sm" />
+            {t.assignee.name}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 font-medium whitespace-nowrap text-amber-700">
+            <Icon name="userPlus" className="size-3.5" />
+            Unassigned
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-3 text-right text-xs tabular-nums">{formatAge(t.createdAt)}</td>
+      <td className="px-3 py-3 text-right text-xs tabular-nums">
         {t.isStale ? (
-          <span className="rounded bg-red-50 px-1.5 py-0.5 font-medium text-red-700" title="No activity for over 48 hours">
+          <span
+            className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 font-medium whitespace-nowrap text-red-700 ring-1 ring-red-200"
+            title="No activity for over 48 hours"
+          >
+            <Icon name="flame" className="size-3" />
             {formatAge(t.lastActivityAt)} · stale
           </span>
         ) : (
@@ -144,19 +170,21 @@ function Pagination({ meta, params }: { meta: ListMeta; params: QueueParams }) {
   const to = (meta.page - 1) * meta.limit + meta.count;
 
   return (
-    <div className="flex items-center justify-between text-sm text-slate-600">
-      <p>
+    <div className="flex items-center justify-between text-sm text-stone-600">
+      <p className="tabular-nums">
         {from}–{to} of {meta.total} tickets
       </p>
       <div className="flex gap-2">
         {meta.page > 1 && (
-          <Link href={link(meta.page - 1)} className="rounded-md border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50">
-            ← Previous
+          <Link href={link(meta.page - 1)} className="btn btn-secondary btn-sm">
+            <Icon name="arrowLeft" className="size-3.5" />
+            Previous
           </Link>
         )}
         {meta.page < meta.pages && (
-          <Link href={link(meta.page + 1)} className="rounded-md border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50">
-            Next →
+          <Link href={link(meta.page + 1)} className="btn btn-secondary btn-sm">
+            Next
+            <Icon name="arrowRight" className="size-3.5" />
           </Link>
         )}
       </div>

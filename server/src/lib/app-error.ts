@@ -30,10 +30,8 @@ export const Errors = {
     new AppError(403, 'FORBIDDEN', message),
   notFound: (resource = 'Resource') => new AppError(404, 'NOT_FOUND', `${resource} not found`),
   conflict: (message = 'Resource already exists') => new AppError(409, 'CONFLICT', message),
-  ticketClosed: () =>
-    new AppError(
-      409,
-      'TICKET_CLOSED',
-      'This ticket is closed. Please raise a new ticket if you need more help.',
-    ),
+  ticketClosed: (message = 'This ticket is closed. Please raise a new ticket if you need more help.') =>
+    new AppError(409, 'TICKET_CLOSED', message),
+  aiUnavailable: (message = 'The AI assistant is unavailable right now. You can still write a reply manually.') =>
+    new AppError(503, 'AI_UNAVAILABLE', message),
 };

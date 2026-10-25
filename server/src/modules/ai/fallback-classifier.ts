@@ -61,7 +61,8 @@ const PRINT_DEFECT = /(defect|blurr?(y|ed)|misprint|misalign|binding|damaged|tor
 const HOW_TO = /\b(can i|how (do|can) i|is it possible|could you (tell|explain)|update (my )?(bio|description|photo|author))\b/i;
 
 export function classifyByKeywords(input: { subject: string; description: string }): Classification {
-  const text = `${input.subject}\n${input.description}`;
+  // Normalise typographic apostrophes (phones and Word type "haven’t", not "haven't").
+  const text = `${input.subject}\n${input.description}`.replace(/[‘’ʼ]/g, "'");
 
   // Category: the one with the most matching signals; ties resolve in TICKET_CATEGORIES order.
   let category: TicketCategory = 'general_inquiry';

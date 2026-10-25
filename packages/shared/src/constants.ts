@@ -103,3 +103,20 @@ export const ACTIVE_TICKET_STATUSES = ['open', 'in_progress'] as const satisfies
 
 /** An active ticket with no activity for this long is flagged as stale in the queue. */
 export const STALE_TICKET_HOURS = 48;
+
+// ── Real-time ────────────────────────────────────────────────────────────────
+/**
+ * Socket.IO events. They only tell a client that something changed (payload:
+ * `TicketEventPayload`); the client re-fetches through the REST API, so access
+ * control and DTO whitelisting stay in one place.
+ */
+export const SOCKET_EVENTS = {
+  ticketUpdated: 'ticket:updated',
+  ticketMessage: 'ticket:message',
+} as const;
+export type SocketEvent = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];
+
+export interface TicketEventPayload {
+  ticketId: string;
+  ticketNumber: string;
+}

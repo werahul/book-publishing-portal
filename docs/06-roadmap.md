@@ -24,19 +24,20 @@ Four-day budget. The brief says to prioritise *"the core ticket flow and AI inte
 - [x] Seed demo tickets
 - [x] Tests: ticket RBAC matrix, lifecycle transitions, notes isolation, filters/sort/pagination, fallback classifier, payout-window maths
 
-## Phase 3 — AI (Groq)
-- [ ] `AiProvider` interface + `GroqProvider` (timeouts, one retry, JSON mode)
-- [ ] KB split into sections + tone guide + sample Q→A
-- [ ] `classifyTicket` (small model) → async on create; keyword fallback
-- [ ] `draftReply` (larger model) → cached on the ticket; regenerate; manual fallback UI
-- [ ] Admin override of category and priority (`source=admin`)
-- [ ] Token logging per call (cost evidence for the README)
-- [ ] Tests with a mocked provider: success, timeout, bad JSON → fallback
+## Phase 3 — AI (Groq) ✅
+- [x] `AiProvider` interface + `GroqProvider` (timeouts, one retry, JSON mode, one repair turn)
+- [x] KB split into sections + tone guide + sample Q→A
+- [x] LLM classification (small model) → background job on create; keyword fallback; `POST /tickets/:id/classify` re-run
+- [x] `draftReply` (larger model) → cached on the ticket; regenerate; invalidated by new messages; manual fallback UI
+- [x] Admin override of category and priority (`source=admin`), race-safe against the background job
+- [x] Token logging per call (cost evidence for the README)
+- [x] Tests with a fake provider: success, timeout, rate limit, bad JSON / enums → fallback; draft caching, coalescing, stale-write guard; prompt-builder unit tests; Groq SDK error mapping
 
-## Phase 4 — Real-time
-- [ ] Socket.IO server, `socket-token` endpoint, rooms
-- [ ] Emit on status, message and classification changes
-- [ ] Client hook with a polling fallback
+## Phase 4 — Real-time ✅
+- [x] Socket.IO server, `socket-token` endpoint, rooms
+- [x] Emit on create, status, message, note (admins only) and classification changes
+- [x] Client `<LiveUpdates>` with a polling fallback
+- [x] Tests: handshake auth (missing, garbage or session token), per-room delivery, notes isolation
 
 ## Phase 5 — Polish & product
 - [x] Empty states, loading skeletons, royalty explanations, stale-ticket badges *(done in Phase 2)*

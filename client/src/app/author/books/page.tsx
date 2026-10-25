@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PRODUCTION_STAGE_LABELS } from "@bookleaf/shared";
+import { PRODUCTION_STAGES, PRODUCTION_STAGE_LABELS } from "@bookleaf/shared";
 import { StageBadge } from "@/components/badges";
-import { Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { Icon } from "@/components/icons";
+import { BookCover, Card, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 import { formatDate, formatINR, formatNumber } from "@/lib/format";
 import { bookPayoutStatus, explainPending, stageProgress, summarise } from "@/lib/royalty";
 import { serverFetch } from "@/lib/server-api";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: "My Books · BookLeaf" };
 export default function MyBooksPage() {
   return (
     <>
-      <PageHeader title="My Books" description="Publication details, sales and royalties for each of your titles." />
+      <PageHeader eyebrow="Your library" title="My Books" description="Publication details, sales and royalties for each of your titles." />
       <Suspense fallback={<Skeleton className="h-96" />}>
         <BookList />
       </Suspense>
@@ -26,13 +27,16 @@ async function BookList() {
   const { data: books } = await serverFetch<ApiData<Book[]>>("/books");
 
   if (books.length === 0) {
-    return <EmptyState title="No books yet" description="Once your manuscript is with BookLeaf, it will show up here." />;
+    return <EmptyState icon="book" title="No books yet" description="Once your manuscript is with BookLeaf, it will show up here." />;
   }
 
   const { pending } = summarise(books);
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-600">{explainPending(pending)}</p>
+      <div className="flex items-start gap-3 rounded-xl border border-leaf-200/70 bg-linear-to-r from-leaf-50 to-amber-50/60 px-4 py-3 text-sm text-leaf-900">
+        <Icon name="info" className="mt-0.5 size-4 text-leaf-600" />
+        <p>{explainPending(pending)}</p>
+      </div>
       {books.map((book) => (
         <BookCard key={book.id} book={book} />
       ))}
@@ -43,23 +47,35 @@ async function BookList() {
 function BookCard({ book }: { book: Book }) {
   const live = book.stage === "published_live";
   return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-slate-900">{book.title}</h2>
-          <p className="text-sm text-slate-500">
-            {book.genre} · ISBN {book.isbn}
-          </p>
+    <Card className="animate-rise p-5 transition duration-200 hover:shadow-lift sm:p-6">
+      <div className="flex gap-5">
+        <div className="hidden sm:block">
+          <BookCover title={book.title} />
         </div>
-        <StageBadge stage={book.stage} />
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-xl font-semibold tracking-tight text-stone-900">{book.title}</h2>
+              <p className="text-sm text-stone-500">
+                {book.genre} · <span className="font-mono text-xs">ISBN {book.isbn}</span>
+              </p>
+            </div>
+            <StageBadge stage={book.stage} />
+          </div>
 
-      {live ? <LiveDetails book={book} /> : <ProductionDetails book={book} />}
+          {live ? <LiveDetails book={book} /> : <ProductionDetails book={book} />}
 
-      <div className="mt-4 flex justify-end">
-        <Link href={`/author/tickets/new?bookId=${book.id}`} className="text-sm font-medium text-emerald-700 hover:underline">
-          Get help with this book →
-        </Link>
+          <div className="mt-4 flex justify-end border-t border-stone-100 pt-3">
+            <Link
+              href={`/author/tickets/new?bookId=${book.id}`}
+              className="group inline-flex items-center gap-1.5 text-sm font-medium text-leaf-700 hover:text-leaf-800"
+            >
+              <Icon name="message" className="size-4" />
+              Get help with this book
+              <Icon name="arrowRight" className="size-3.5 transition group-hover:translate-x-0.5" />
+            </Link>
+          </div>
+        </div>
       </div>
     </Card>
   );
@@ -67,7 +83,7 @@ function BookCard({ book }: { book: Book }) {
 
 function LiveDetails({ book }: { book: Book }) {
   const payout = bookPayoutStatus(book);
-  const payoutTone = { ok: "text-emerald-700", info: "text-sky-700", muted: "text-slate-500" }[payout.tone];
+  const payoutTone = { ok: "text-leaf-700", info: "text-sky-700", muted: "text-stone-500" }[payout.tone];
 
   return (
     <>
@@ -78,22 +94,22 @@ function LiveDetails({ book }: { book: Book }) {
         <Field label="Royalty per copy" value={formatINR(book.royaltyPerCopy)} />
       </dl>
 
-      <div className="mt-4 grid grid-cols-3 divide-x divide-slate-100 rounded-md bg-slate-50 py-3 text-center text-sm">
+      <div className="mt-4 grid grid-cols-3 divide-x divide-stone-200/70 rounded-xl bg-linear-to-r from-stone-50 to-leaf-50/60 py-3 text-center text-sm ring-1 ring-stone-200/60">
         <Money label="Total earned" value={book.royalty.earned} />
         <Money label="Paid to you" value={book.royalty.paid} />
-        <Money label="Pending" value={book.royalty.pending} />
+        <Money label="Pending" value={book.royalty.pending} highlight={book.royalty.pending > 0} />
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
         <p className={`font-medium ${payoutTone}`}>
           {payout.label}
           {book.lastRoyaltyPayoutDate && (
-            <span className="font-normal text-slate-500"> · last payout {formatDate(book.lastRoyaltyPayoutDate)}</span>
+            <span className="font-normal text-stone-500"> · last payout {formatDate(book.lastRoyaltyPayoutDate)}</span>
           )}
         </p>
         <div className="flex flex-wrap gap-1">
           {book.availableOn.map((platform) => (
-            <span key={platform} className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+            <span key={platform} className="rounded-full bg-white px-2 py-0.5 text-stone-600 ring-1 ring-stone-200">
               {platform}
             </span>
           ))}
@@ -107,16 +123,24 @@ function ProductionDetails({ book }: { book: Book }) {
   const { step, total } = stageProgress(book.stage);
   return (
     <div className="mt-4 space-y-2">
-      <div className="flex justify-between text-xs text-slate-500">
+      <div className="flex justify-between text-xs text-stone-500">
         <span>
-          Stage {step} of {total}: <span className="font-medium text-slate-700">{PRODUCTION_STAGE_LABELS[book.stage]}</span>
+          Stage {step} of {total}: <span className="font-medium text-stone-700">{PRODUCTION_STAGE_LABELS[book.stage]}</span>
         </span>
         <span>Next: Published &amp; Live</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={total}>
-        <div className="h-full rounded-full bg-amber-400" style={{ width: `${(step / total) * 100}%` }} />
+      <div className="flex gap-1" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={total}>
+        {PRODUCTION_STAGES.map((s, i) => (
+          <div
+            key={s}
+            title={PRODUCTION_STAGE_LABELS[s]}
+            className={`h-2 flex-1 rounded-full ${
+              i + 1 < step ? "bg-linear-to-r from-amber-400 to-amber-500" : i + 1 === step ? "animate-pulse bg-amber-400" : "bg-stone-200"
+            }`}
+          />
+        ))}
       </div>
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-stone-500">
         Your book is still in production. Price, sales and royalty figures will appear here once it&apos;s published
         and live. We&apos;ll email you as it moves through each stage.
       </p>
@@ -127,17 +151,17 @@ function ProductionDetails({ book }: { book: Book }) {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="font-medium text-slate-900">{value}</dd>
+      <dt className="text-xs text-stone-500">{label}</dt>
+      <dd className="font-medium text-stone-900">{value}</dd>
     </div>
   );
 }
 
-function Money({ label, value }: { label: string; value: number }) {
+function Money({ label, value, highlight = false }: { label: string; value: number; highlight?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="font-semibold text-slate-900">{formatINR(value)}</p>
+      <p className="text-xs text-stone-500">{label}</p>
+      <p className={`font-display text-lg font-semibold tabular-nums ${highlight ? "text-amber-700" : "text-stone-900"}`}>{formatINR(value)}</p>
     </div>
   );
 }

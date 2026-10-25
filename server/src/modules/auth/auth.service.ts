@@ -1,5 +1,6 @@
+import { env } from '../../config/env';
 import { Errors } from '../../lib/app-error';
-import { signSessionToken } from '../../lib/jwt';
+import { signSessionToken, signSocketToken, SOCKET_TOKEN_TTL_SECONDS } from '../../lib/jwt';
 import { burnPasswordCheck, verifyPassword } from '../../lib/password';
 import type { AuthUser } from '../../types/auth';
 import { User } from '../users/user.model';
@@ -25,4 +26,19 @@ export async function login(email: string, password: string): Promise<LoginResul
 
   const token = signSessionToken({ userId: String(user._id), role: user.role });
   return { token, user: toAuthUser(user) };
+}
+
+export interface SocketTokenDto {
+  token: string;
+  /** Where to open the Socket.IO connection (the Next.js rewrite can't proxy WebSockets). */
+  url: string;
+  expiresIn: number;
+}
+
+export function issueSocketToken(user: AuthUser): SocketTokenDto {
+  return {
+    token: signSocketToken({ userId: user.id, role: user.role }),
+    url: env.SOCKET_PUBLIC_URL,
+    expiresIn: SOCKET_TOKEN_TTL_SECONDS,
+  };
 }

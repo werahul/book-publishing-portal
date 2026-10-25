@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { settleBackgroundJobs } from '../src/lib/background';
 import { User } from '../src/modules/users/user.model';
 import { ADMIN, app, loginAs, PRIYA, ROHIT, seedSample, startTestDb, stopTestDb } from './helpers';
 
@@ -97,6 +98,8 @@ describe('POST /tickets', () => {
       subject: 'Wrong ISBN on Amazon',
       description: 'The ISBN shown on Amazon is different from the one printed on my book cover.',
     });
+    // No GROQ_API_KEY in tests: the background AI pass fails and the keyword triage stands.
+    await settleBackgroundJobs();
     const detail = await admin.get(`/api/v1/tickets/${created.body.data.id}`);
 
     expect(detail.body.data.ticket).toMatchObject({
@@ -104,7 +107,7 @@ describe('POST /tickets', () => {
       categorySource: 'fallback',
       priority: 'high',
       prioritySource: 'fallback',
-      ai: { state: 'pending' },
+      ai: { state: 'failed', error: 'AI is not configured on this server', classification: null },
     });
   });
 

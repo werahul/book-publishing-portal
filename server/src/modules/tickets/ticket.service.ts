@@ -1,6 +1,7 @@
 import { Types, type HydratedDocument } from 'mongoose';
 import {
   PRIORITY_RANK,
+  SOCKET_EVENTS,
   STALE_TICKET_HOURS,
   type CreateMessageInput,
   type CreateTicketInput,
@@ -10,7 +11,9 @@ import {
 } from '@bookleaf/shared';
 import { scopeByOwner } from '../../lib/access';
 import { Errors } from '../../lib/app-error';
+import { runInBackground } from '../../lib/background';
 import { escapeRegex } from '../../lib/regex';
+import { emitTicketEvent } from '../../realtime/realtime';
 import type { AuthUser } from '../../types/auth';
 import { classifyByKeywords } from '../ai/fallback-classifier';
 import { Book, type BookRecord } from '../books/book.model';
@@ -19,6 +22,7 @@ import { User } from '../users/user.model';
 import { nextSequence } from './counter.model';
 import { InternalNote } from './internal-note.model';
 import { Message } from './message.model';
+import { runClassification } from './ticket-ai.service';
 import { Ticket, type TicketRecord } from './ticket.model';
 import {
   toAdminTicketDto,
@@ -78,7 +82,7 @@ export async function createTicket(user: AuthUser, input: CreateTicketInput): Pr
   }
 
   // Instant, offline classification so the ticket is triaged from the first second.
-  // The LLM refines it asynchronously in the AI phase (docs/02-architecture.md §4).
+  // The LLM refines it in the background (docs/02-architecture.md §4).
   const triage = classifyByKeywords(input);
 
   const ticket = await Ticket.create({
@@ -96,7 +100,11 @@ export async function createTicket(user: AuthUser, input: CreateTicketInput): Pr
     ai: { state: 'pending' },
   });
 
-  return loadDto(user, String(ticket._id));
+  const id = String(ticket._id);
+  emitTicketEvent(SOCKET_EVENTS.ticketUpdated, ticket);
+  // Never awaited: an AI outage can't delay or fail ticket creation.
+  runInBackground(`classify ${ticket.ticketNumber}`, () => runClassification(id));
+  return loadDto(user, id);
 }
 
 // ── List / queue ─────────────────────────────────────────────────────────────
@@ -254,6 +262,15 @@ export async function updateTicket(user: AuthUser, id: string, patch: UpdateTick
 
   ticket.lastActivityAt = new Date();
   await ticket.save();
+  emitTicketEvent(SOCKET_EVENTS.ticketUpdated, ticket);
+  return loadDto(user, id);
+}
+
+/** Admin "re-run AI": synchronous, so the caller learns whether it worked. */
+export async function reclassifyTicket(user: AuthUser, id: string): Promise<TicketDto> {
+  if (!(await Ticket.exists({ _id: id }))) throw Errors.notFound('Ticket');
+  const outcome = await runClassification(id);
+  if (!outcome.ok) throw Errors.aiUnavailable(`${outcome.error}. The keyword triage is still in place.`);
   return loadDto(user, id);
 }
 
@@ -280,7 +297,11 @@ export async function addMessage(user: AuthUser, id: string, input: CreateMessag
 
   ticket.lastActivityAt = message.createdAt;
   ticket.lastReplyRole = user.role;
+  // Any new message makes the cached draft stale: an author message needs a fresh answer,
+  // and an admin reply has just used (or replaced) it. The next draft request regenerates.
+  ticket.set('ai.draft', null);
   await ticket.save();
+  emitTicketEvent(SOCKET_EVENTS.ticketMessage, ticket);
 
   return toMessageDto({ ...message.toObject(), sender: { _id: message.sender, name: user.name } }, user.role);
 }
@@ -288,8 +309,11 @@ export async function addMessage(user: AuthUser, id: string, input: CreateMessag
 // ── Internal notes (admin) ───────────────────────────────────────────────────
 
 export async function addNote(user: AuthUser, id: string, body: string): Promise<NoteDto> {
-  if (!(await Ticket.exists({ _id: id }))) throw Errors.notFound('Ticket');
+  const ticket = await Ticket.findById(id).select('ticketNumber author').lean();
+  if (!ticket) throw Errors.notFound('Ticket');
   const note = await InternalNote.create({ ticket: id, admin: user.id, body });
+  // Notes are internal: only the support team is told.
+  emitTicketEvent(SOCKET_EVENTS.ticketUpdated, ticket, { adminsOnly: true });
   return toNoteDto({ ...note.toObject(), admin: { _id: note.admin, name: user.name } });
 }
 

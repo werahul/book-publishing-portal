@@ -43,3 +43,33 @@ export function verifySessionToken(token: string): SessionClaims {
     throw Errors.unauthenticated('Your session is invalid or has expired. Please log in again.');
   }
 }
+
+// ── Socket handshake token ───────────────────────────────────────────────────
+// The session cookie is httpOnly and scoped to the web origin, so the browser can't
+// hand it to the Socket.IO server directly. Instead it trades the session for a
+// short-lived token with its own audience (GET /auth/socket-token).
+export const SOCKET_AUDIENCE = 'bookleaf-socket';
+export const SOCKET_TOKEN_TTL_SECONDS = 60;
+
+export function signSocketToken({ userId, role }: SessionClaims): string {
+  return jwt.sign({ role }, env.JWT_SECRET, {
+    algorithm: 'HS256',
+    subject: userId,
+    issuer: JWT_ISSUER,
+    audience: SOCKET_AUDIENCE,
+    expiresIn: SOCKET_TOKEN_TTL_SECONDS,
+  });
+}
+
+/** Throws for anything that isn't a valid, unexpired socket token (session tokens included). */
+export function verifySocketToken(token: string): SessionClaims {
+  const payload = jwt.verify(token, env.JWT_SECRET, {
+    algorithms: ['HS256'],
+    issuer: JWT_ISSUER,
+    audience: SOCKET_AUDIENCE,
+  });
+  if (typeof payload === 'string' || typeof payload.sub !== 'string' || !ROLES.includes(payload.role as Role)) {
+    throw new Error('Malformed socket token');
+  }
+  return { userId: payload.sub, role: payload.role as Role };
+}

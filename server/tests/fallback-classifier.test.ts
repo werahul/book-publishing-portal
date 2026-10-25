@@ -25,6 +25,14 @@ describe('classifyByKeywords', () => {
     expect(result.reasoning).toMatch(/^Keyword fallback/);
   });
 
+  it('handles typographic apostrophes (“haven’t”) like straight ones', () => {
+    const result = classifyByKeywords({
+      subject: 'Haven’t been paid in months',
+      description: 'I haven’t seen a single rupee of royalty in the last 5 months.',
+    });
+    expect(result).toMatchObject({ category: 'royalty_payments', priority: 'critical' });
+  });
+
   it('ranks "no royalty for 6 months" above "update my bio"', () => {
     const rank = { critical: 4, high: 3, medium: 2, low: 1 };
     const royalty = classifyByKeywords({ subject: '', description: "I haven't received any royalty for 6 months" });

@@ -7,6 +7,7 @@ import type {
   UpdateTicketInput,
 } from '@bookleaf/shared';
 import { currentUser } from '../../middleware/auth';
+import * as ticketAiService from './ticket-ai.service';
 import * as ticketService from './ticket.service';
 
 type IdParams = Request<{ id: string }>;
@@ -42,4 +43,19 @@ export async function addMessage(req: IdParams, res: Response) {
 export async function addNote(req: IdParams, res: Response) {
   const { body } = req.body as CreateNoteInput;
   res.status(201).json({ data: await ticketService.addNote(currentUser(req), req.params.id, body) });
+}
+
+// ── AI (admin) ───────────────────────────────────────────────────────────────
+
+export async function getAiDraft(req: IdParams, res: Response) {
+  const { draft, cached } = await ticketAiService.getDraft(req.params.id);
+  res.json({ data: draft, meta: { cached } });
+}
+
+export async function regenerateAiDraft(req: IdParams, res: Response) {
+  res.json({ data: await ticketAiService.regenerateDraft(req.params.id), meta: { cached: false } });
+}
+
+export async function reclassify(req: IdParams, res: Response) {
+  res.json({ data: await ticketService.reclassifyTicket(currentUser(req), req.params.id) });
 }

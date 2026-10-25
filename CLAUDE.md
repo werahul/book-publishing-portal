@@ -46,7 +46,11 @@ Env: copy `server/.env.example` → `server/.env` and `client/.env.example` → 
   - Use `serverFetch` (`client/src/lib/server-api.ts`) in RSC and `apiFetch` (`client/src/lib/api.ts`) in client components.
   - Read `node_modules/next/dist/docs/` before using unfamiliar Next APIs (see `client/AGENTS.md`).
 - **Every new endpoint:** add a test in `server/tests/` and a section in `docs/04-api.md`.
-- **Tickets:** `server/src/modules/tickets/ticket.service.ts` owns status transitions and triage. New tickets are classified instantly by `modules/ai/fallback-classifier.ts`. Author payloads go through `toAuthorTicketDto`; never add admin fields there.
+- **Tickets:** `server/src/modules/tickets/ticket.service.ts` owns status transitions and triage. New tickets are classified instantly by `modules/ai/fallback-classifier.ts`, then by the LLM in a background job (`ticket-ai.service.ts`, via `lib/background.ts`). Author payloads go through `toAuthorTicketDto`; never add admin fields there.
+- **AI + real-time:**
+  - Prompts live in `modules/ai/` and never touch the DB.
+  - In tests, install `FakeAiProvider` (`tests/fake-ai.ts`) via `setAiProvider()`, and `await settleBackgroundJobs()` before asserting on AI results.
+  - Mutations call `emitTicketEvent()` (`src/realtime/realtime.ts`). Payloads are `{ ticketId, ticketNumber }` only; never put ticket data on the socket.
 - **Client mutations:** call `apiFetch`, then `router.refresh()` inside `startTransition`. Filters live in URL search params.
 - **Dev processes on Windows:** stopping a background `npm run dev` can leave the child `node` process holding :3000/:4000. Check the port's owner before starting another.
 - **Commits:** the user makes commits themselves. Don't commit unless asked.

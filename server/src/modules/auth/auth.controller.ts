@@ -20,3 +20,9 @@ export function logout(_req: Request, res: Response) {
 export function me(req: Request, res: Response) {
   res.json({ data: { user: currentUser(req) } });
 }
+
+/** Trades the session cookie for a short-lived Socket.IO handshake token. */
+export function socketToken(req: Request, res: Response) {
+  res.set('Cache-Control', 'no-store');
+  res.json({ data: authService.issueSocketToken(currentUser(req)) });
+}

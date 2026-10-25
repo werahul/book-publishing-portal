@@ -114,8 +114,23 @@ export interface AdminTicket extends AuthorTicket {
       at: string;
     } | null;
     error: string | null;
-    draft?: { body: string; model: string; generatedAt: string } | null;
+    /** Admin detail view only: the cached AI draft, if one has been generated. */
+    draft?: AiDraft | null;
   };
+}
+
+/** GET/POST /tickets/:id/ai-draft. `meta.cached` says whether the model was called. */
+export interface AiDraft {
+  body: string;
+  model: string;
+  generatedAt: string;
+}
+
+/** GET /auth/socket-token */
+export interface SocketToken {
+  token: string;
+  url: string;
+  expiresIn: number;
 }
 
 export interface TicketMessage {
